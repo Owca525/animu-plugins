@@ -1,4 +1,4 @@
-import { s as request, t } from "./index.js";
+import { request, t } from "./index.js";
 const BACKEND = "https://backend.animetsu.bz";
 const WEBSITE = "https://animetsu.bz/";
 const HEADER = {

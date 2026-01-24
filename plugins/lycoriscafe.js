@@ -1,4 +1,4 @@
-import { s as request, y as timeToSeconds } from "./index.js";
+import { request, timeToSeconds } from "./index.js";
 const WEB = "https://www.lycoris.cafe";
 const HEADER = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"

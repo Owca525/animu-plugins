@@ -1,4 +1,4 @@
-import { s as request, m as convertChaptersVTT, c as convertText } from "./index.js";
+import { request, convertChaptersVTT, convertText } from "./index.js";
 const WEB = "https://anizone.to";
 const CARDS_REGEX = /<div[^>]*class=["']grid grid-cols-1 2xl:grid-cols-2 gap-4["'][^>]*>(.*?)<\/div>/gs;
 const HEADER = {

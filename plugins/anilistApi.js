@@ -1,4 +1,4 @@
-import { g as genYearsList, s as request } from "./index.js";
+import { genYearsList, request } from "./index.js";
 const pageSize = 20;
 const animeData = `
       id
