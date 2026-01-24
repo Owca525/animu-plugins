@@ -1,6 +1,6 @@
 [
     {
-        "name": "anilistApi",
+        "name": "AnilistApi",
         "file": "/plugins/anilistApi.js",
         "type": "information",
         "ver": "2.0",
