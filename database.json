@@ -7,7 +7,7 @@
         "author": "Owca525",
         "urlWebsite": "https://anilist.co",
         "icon": "https://anilist.co/img/icons/icon.svg",
-        "sha256": "625ae7a82cf2baeee12a8cebce6d141c754a4977b7c54edf4ef2c9e03d111d80"
+        "sha256": "acd9d6a680e8a56fdebecdd2a0d90b0c552015650a8f51c12f54e3c3dc7738cc"
     },
     {
         "name": "Allmanga",
@@ -17,7 +17,7 @@
         "author": "Owca525",
         "urlWebsite": "https://allmanga.to",
         "icon": "https://allmanga.to/android-icon-192x192.png",
-        "sha256": "404422242c6118e65bd5ef5845cb42622975bf0abcca9ea8e9940a588c1d04bd"
+        "sha256": "1963075d5cce51030ff390def6beffe7ae1680f4b67a88ee0d4d4c8ea5e0df14"
     },
     {
         "name": "AniZone",
@@ -26,7 +26,7 @@
         "ver": "1.1",
         "author": "Owca525",
         "urlWebsite": "https://anizone.to",
-        "sha256": "90b3ff0e1cb78f1a4102428042d71588221a8762ec4a47fd2427c0c36d12569a"
+        "sha256": "a44eb3b7abc5aa8b27fd1cb62344d2fa7992f2f5aeb43882134c7f4c9cd69530"
     },
     {
         "name": "GojoLive",
@@ -36,7 +36,7 @@
         "author": "Owca525",
         "urlWebsite": "https://animetsu.bz/",
         "icon": "https://animetsu.bz/android-chrome-512x512.png",
-        "sha256": "2199c6279fac322cc9a772ad776647fedcf406bb623363d7a2779a5fcaf70119"
+        "sha256": "a44eb3b7abc5aa8b27fd1cb62344d2fa7992f2f5aeb43882134c7f4c9cd69530"
     },
     {
         "name": "Lycoris.cafe",
@@ -46,6 +46,6 @@
         "author": "Owca525",
         "urlWebsite": "https://www.lycoris.cafe",
         "icon": "https://www.lycoris.cafe/favicon.ico",
-        "sha256": "d343756907ef919a33e886209140565402f4aabad5ad8aaad692d33887b52807"
+        "sha256": "861c07ac43338ffa2657f4dc9ee4d9bb821c84b324d3f6cefeed72dcf4786bb4"
     }
 ]
