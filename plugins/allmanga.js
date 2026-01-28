@@ -9,7 +9,8 @@ const header = {
   "Referer": "https://allmanga.to/"
   // "Host": "api.allanime.day"
 };
-const source_names = ["Yt-mp4", "Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4"];
+const source_names = ["Yt-mp4", "Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Mp4", "Ok"];
+const normalUrls = ["Mp4", "Ok"];
 const mapping = {
   "79": "A",
   "7a": "B",
@@ -99,7 +100,8 @@ const mapping = {
 function findUrl(url, sourceName) {
   for (let index = 0; index < source_names.length; index++) {
     const element = source_names[index];
-    if (element.toLowerCase() == sourceName.toLowerCase()) return decodeText(url);
+    if (element.toLowerCase() == sourceName.toLowerCase() && normalUrls.includes(element)) return { url, decode: false };
+    if (element.toLowerCase() == sourceName.toLowerCase()) return { url: decodeText(url), decode: true };
   }
   return;
 }
@@ -286,7 +288,7 @@ async function requestForUrl(url) {
 }
 class Allmanga {
   metadata = {
-    version: "1.4",
+    version: "1.7",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
@@ -294,7 +296,7 @@ class Allmanga {
     urlWebsite: "https://allmanga.to"
   };
   config = {
-    "Webiste": API_WEB,
+    "settings.extensions.website": API_WEB,
     "HASH_SEARCH": HASH_SEARCH,
     "HASH_INFO": HASH_INFO,
     "HASH_PLAYER": HASH_PLAYER,
@@ -313,9 +315,12 @@ class Allmanga {
       let data = [];
       for (let i = 0; i < urls.length; i++) {
         const element = urls[i];
-        let tmp = await requestForUrl(element);
-        if (tmp) data.push(tmp);
+        if (element.decode) {
+          let tmp = await requestForUrl(element.url);
+          if (tmp) data.push(tmp);
+        }
       }
+      console.log(data);
       if (type == "dub" && jsonObject.data.episode.episodeInfo.vidInforsdub) {
         data.push({
           hostname: "wp.youtube-anime.com",
