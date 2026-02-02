@@ -231,7 +231,7 @@ async function formatEpisodeData(data) {
 }
 async function extractEpisodes(anime_id, episode) {
   try {
-    let variables = `{"showId":"${anime_id}","episodeNumStart":${episode.start},"episodeNumEnd":${episode.end}}`;
+    let variables = `{"showId":"${anime_id}","episodeNumStart":${parseInt(episode.start.toString())},"episodeNumEnd":${parseInt(episode.end.toString())}}`;
     const resp = await requestToApi(variables, HASH_DATA, header);
     if (!resp.success || !resp.json) return [];
     if ("errors" in resp.json) return [];
@@ -245,11 +245,10 @@ async function extractEpisodes(anime_id, episode) {
 async function extractInformation(id) {
   let variables = `{"_id":"${id}"}`;
   const resp = await requestToApi(variables, HASH_INFO, header);
-  console.log(resp);
   if (!resp.success || !resp.json || !resp.json.data.show) return [];
   let anime_data = resp.json.data.show;
   let episodes = await extractEpisodes(id, { start: parseInt(anime_data.availableEpisodesDetail.sub.at(-1)), end: parseInt(anime_data.availableEpisodesDetail.sub[0]) });
-  if (episodes.length <= 0) return [];
+  if (episodes.length <= 0) episodes = anime_data["availableEpisodesDetail"]["sub"].map((v) => ({ ep: v }));
   episodes = episodes.sort((a, b) => Number(a.ep) - Number(b.ep));
   return [
     {
@@ -288,7 +287,7 @@ async function requestForUrl(url) {
 }
 class Allmanga {
   metadata = {
-    version: "1.7",
+    version: "1.8",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
