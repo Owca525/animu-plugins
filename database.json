@@ -29,16 +29,6 @@
         "sha256": "90b3ff0e1cb78f1a4102428042d71588221a8762ec4a47fd2427c0c36d12569a"
     },
     {
-        "name": "GojoLive",
-        "file": "/plugins/gojoLive.js",
-        "type": "player",
-        "ver": "1.2",
-        "author": "Owca525",
-        "urlWebsite": "https://animetsu.bz/",
-        "icon": "https://animetsu.bz/android-chrome-512x512.png",
-        "sha256": "2199c6279fac322cc9a772ad776647fedcf406bb623363d7a2779a5fcaf70119"
-    },
-    {
         "name": "Lycoris.cafe",
         "file": "/plugins/lycoriscafe.js",
         "type": "player",
