@@ -37,5 +37,15 @@
         "urlWebsite": "https://www.lycoris.cafe",
         "icon": "https://www.lycoris.cafe/favicon.ico",
         "sha256": "d343756907ef919a33e886209140565402f4aabad5ad8aaad692d33887b52807"
+    },
+    {
+        "name": "Animetsu.Live",
+        "file": "/plugins/animetsu.js",
+        "type": "player",
+        "ver": "1.0",
+        "author": "Owca525",
+        "urlWebsite": "https://www.lycoris.cafe",
+        "icon": "https://animetsu.live/",
+        "sha256": "d8ff74c8a3ff0178a0d7c67432247631e3ce59476f466ea02074f54d2a8f150e"
     }
 ]
