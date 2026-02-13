@@ -1,4 +1,4 @@
-import { request, t } from "./index.js";
+import { request, t, makeSmallText } from "./index.js";
 const BACKEND = "https://ani.metsu.site";
 const WEBSITE = "https://animetsu.bz/";
 const HEADER = {
@@ -6,6 +6,47 @@ const HEADER = {
   "Origin": WEBSITE,
   "Referer": WEBSITE
 };
+function SheepFinderAnime2000(animeList, anime) {
+  try {
+    if (anime.id != "") {
+      console.log("ID Check");
+      const findedID = animeList.find((item) => item.id == anime.id);
+      if (findedID) return findedID.player_ID;
+    }
+    console.log("First Check", animeList);
+    if (animeList.length <= 0) return void 0;
+    if (animeList.length == 1) return animeList[0].player_ID;
+    let seasonYearFilter = animeList.filter((element) => element.seasonYear == anime.seasonYear);
+    console.log("Second Check", seasonYearFilter);
+    if (seasonYearFilter.length <= 0) return void 0;
+    if (seasonYearFilter.length == 1) return seasonYearFilter[0].player_ID;
+    let seasonFilter = seasonYearFilter.filter((element) => makeSmallText(element.season) == makeSmallText(anime.season));
+    console.log("Third Check", seasonYearFilter);
+    if (seasonFilter.length <= 0) return void 0;
+    if (seasonFilter.length == 1) return seasonFilter[0].player_ID;
+    let episodesFilter = void 0;
+    if (anime.episodes) {
+      episodesFilter = seasonFilter.filter((element) => element.episodes == anime.episodes);
+      console.log("Four Check", episodesFilter);
+      if (episodesFilter.length <= 0) return void 0;
+      if (episodesFilter.length == 1) return episodesFilter[0].player_ID;
+    }
+    let durationFilter = [];
+    if (episodesFilter) durationFilter = episodesFilter.filter((element) => element.duration == anime.duration);
+    else durationFilter = seasonFilter.filter((element) => element.duration == anime.duration);
+    console.log("Five Check", durationFilter);
+    if (durationFilter.length <= 0) return void 0;
+    if (durationFilter.length == 1) return durationFilter[0].player_ID;
+    let formatFilter = durationFilter.filter((element) => makeSmallText(element.format) == makeSmallText(anime.format));
+    console.log("Six Check", formatFilter);
+    if (formatFilter.length <= 0) return void 0;
+    if (formatFilter.length == 1) return formatFilter[0].player_ID;
+    return formatFilter[0].player_ID;
+  } catch (error) {
+    console.error("Animetsu SheepFinderAnime2000 error", error);
+    return animeList[0].player_ID;
+  }
+}
 async function extractResolutions(episode, type, playerData2, server) {
   try {
     if (!server) return void 0;
@@ -46,7 +87,7 @@ async function extractResolutions(episode, type, playerData2, server) {
 }
 class Animetsu {
   metadata = {
-    version: "1.0",
+    version: "1.1",
     name: "Animetsu.Live",
     icon: "https://animetsu.live/apple-touch-icon.png",
     author: "Owca525",
@@ -82,10 +123,7 @@ class Animetsu {
       let animeID = anime_id;
       if (animeData) {
         const results = await this.searchAnime(animeData.title.romaji, 0);
-        for (let index = 0; index < results.length; index++) {
-          const element = results[index];
-          if (element.AnimeData.id == animeData.id) animeID = element.AnimeData.player_ID;
-        }
+        animeID = SheepFinderAnime2000(results.map((v) => v.AnimeData), animeData);
       }
       if (!animeID) return;
       let response = await request(`${BACKEND}/api/anime/eps/${animeID}`, { headers: HEADER });

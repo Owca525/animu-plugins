@@ -1,8 +1,49 @@
-import { request, timeToSeconds } from "./index.js";
+import { request, timeToSeconds, makeSmallText } from "./index.js";
 const WEB = "https://www.lycoris.cafe";
 const HEADER = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
 };
+function SheepFinderAnime2000(animeList, anime) {
+  try {
+    if (anime.id != "") {
+      console.log("ID Check");
+      const findedID = animeList.find((item) => item.id == anime.id);
+      if (findedID) return findedID.player_ID;
+    }
+    console.log("First Check", animeList);
+    if (animeList.length <= 0) return void 0;
+    if (animeList.length == 1) return animeList[0].player_ID;
+    let seasonYearFilter = animeList.filter((element) => element.seasonYear == anime.seasonYear);
+    console.log("Second Check", seasonYearFilter);
+    if (seasonYearFilter.length <= 0) return void 0;
+    if (seasonYearFilter.length == 1) return seasonYearFilter[0].player_ID;
+    let seasonFilter = seasonYearFilter.filter((element) => makeSmallText(element.season) == makeSmallText(anime.season));
+    console.log("Third Check", seasonYearFilter);
+    if (seasonFilter.length <= 0) return void 0;
+    if (seasonFilter.length == 1) return seasonFilter[0].player_ID;
+    let episodesFilter = void 0;
+    if (anime.episodes) {
+      episodesFilter = seasonFilter.filter((element) => element.episodes == anime.episodes);
+      console.log("Four Check", episodesFilter);
+      if (episodesFilter.length <= 0) return void 0;
+      if (episodesFilter.length == 1) return episodesFilter[0].player_ID;
+    }
+    let durationFilter = [];
+    if (episodesFilter) durationFilter = episodesFilter.filter((element) => element.duration == anime.duration);
+    else durationFilter = seasonFilter.filter((element) => element.duration == anime.duration);
+    console.log("Five Check", durationFilter);
+    if (durationFilter.length <= 0) return void 0;
+    if (durationFilter.length == 1) return durationFilter[0].player_ID;
+    let formatFilter = durationFilter.filter((element) => makeSmallText(element.format) == makeSmallText(anime.format));
+    console.log("Six Check", formatFilter);
+    if (formatFilter.length <= 0) return void 0;
+    if (formatFilter.length == 1) return formatFilter[0].player_ID;
+    return formatFilter[0].player_ID;
+  } catch (error) {
+    console.error("LycorisCafe SheepFinderAnime2000 error", error);
+    return animeList[0].player_ID;
+  }
+}
 function detectResoltion(text) {
   switch (text) {
     case "SD":
@@ -50,7 +91,7 @@ async function requestToApi(anime_id) {
 }
 class LycorisCafe {
   metadata = {
-    version: "1.1",
+    version: "1.2",
     name: "Lycoris.cafe",
     author: "Owca525",
     icon: "https://www.lycoris.cafe/favicon.ico",
@@ -112,7 +153,7 @@ class LycorisCafe {
     if (!animeID && animeData) {
       let animeList = await this.searchAnime(animeData.title.romaji, 1);
       if (animeList.length <= 0) return;
-      animeID = animeList[0].AnimeData.id;
+      animeID = SheepFinderAnime2000(animeList.map((v) => v.AnimeData), animeData);
     }
     if (!animeID) return;
     let req = await requestToApi(animeID);
@@ -144,7 +185,7 @@ class LycorisCafe {
     return episodes;
   };
   searchAnime = async (name, page, _params) => {
-    let url = `https://www.lycoris.cafe/api/search?page=${page}&pageSize=12&search=${name}&genres=&status=&format=&year=&season=&source=&sortField=popularity&sortDirection=desc&preferRomaji=true`;
+    let url = `${WEB}/api/search?page=${page}&pageSize=12&search=${name}&genres=&status=&format=&year=&season=&source=&sortField=popularity&sortDirection=desc&preferRomaji=true`;
     const req = await request(url, { headers: HEADER });
     if (!req.success || !req.json) return [];
     let data = req.json.data.map((element) => {

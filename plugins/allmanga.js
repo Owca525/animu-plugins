@@ -174,40 +174,45 @@ async function SearchAnimeInAllmanga(name, page) {
     return [];
   }
 }
-function findAnime(animeList, anime) {
+function SheepFinderAnime2000(animeList, anime) {
   try {
+    if (anime.id != "") {
+      console.log("ID Check");
+      const findedID = animeList.find((item) => item.id == anime.id);
+      if (findedID) return findedID.player_ID;
+    }
     console.log("First Check", animeList);
     if (animeList.length <= 0) return void 0;
-    if (animeList.length == 1) return animeList[0].AnimeData.player_ID;
-    let seasonYearFilter = animeList.filter((element) => element.AnimeData.seasonYear == anime.seasonYear);
+    if (animeList.length == 1) return animeList[0].player_ID;
+    let seasonYearFilter = animeList.filter((element) => element.seasonYear == anime.seasonYear);
     console.log("Second Check", seasonYearFilter);
     if (seasonYearFilter.length <= 0) return void 0;
-    if (seasonYearFilter.length == 1) return seasonYearFilter[0].AnimeData.player_ID;
-    let seasonFilter = seasonYearFilter.filter((element) => makeSmallText(element.AnimeData.season) == makeSmallText(anime.season));
+    if (seasonYearFilter.length == 1) return seasonYearFilter[0].player_ID;
+    let seasonFilter = seasonYearFilter.filter((element) => makeSmallText(element.season) == makeSmallText(anime.season));
     console.log("Third Check", seasonYearFilter);
     if (seasonFilter.length <= 0) return void 0;
-    if (seasonFilter.length == 1) return seasonFilter[0].AnimeData.player_ID;
+    if (seasonFilter.length == 1) return seasonFilter[0].player_ID;
     let episodesFilter = void 0;
     if (anime.episodes) {
-      episodesFilter = seasonFilter.filter((element) => element.AnimeData.episodes == anime.episodes);
+      episodesFilter = seasonFilter.filter((element) => element.episodes == anime.episodes);
       console.log("Four Check", episodesFilter);
       if (episodesFilter.length <= 0) return void 0;
-      if (episodesFilter.length == 1) return episodesFilter[0].AnimeData.player_ID;
+      if (episodesFilter.length == 1) return episodesFilter[0].player_ID;
     }
     let durationFilter = [];
-    if (episodesFilter) durationFilter = episodesFilter.filter((element) => element.AnimeData.duration == anime.duration);
-    else durationFilter = seasonFilter.filter((element) => element.AnimeData.duration == anime.duration);
+    if (episodesFilter) durationFilter = episodesFilter.filter((element) => element.duration == anime.duration);
+    else durationFilter = seasonFilter.filter((element) => element.duration == anime.duration);
     console.log("Five Check", durationFilter);
     if (durationFilter.length <= 0) return void 0;
-    if (durationFilter.length == 1) return durationFilter[0].AnimeData.player_ID;
-    let formatFilter = durationFilter.filter((element) => makeSmallText(element.AnimeData.format) == makeSmallText(anime.format));
+    if (durationFilter.length == 1) return durationFilter[0].player_ID;
+    let formatFilter = durationFilter.filter((element) => makeSmallText(element.format) == makeSmallText(anime.format));
     console.log("Six Check", formatFilter);
     if (formatFilter.length <= 0) return void 0;
-    if (formatFilter.length == 1) return formatFilter[0].AnimeData.player_ID;
-    return formatFilter[0].AnimeData.player_ID;
+    if (formatFilter.length == 1) return formatFilter[0].player_ID;
+    return formatFilter[0].player_ID;
   } catch (error) {
-    console.error("Allmanga findAnime error", error);
-    return animeList[0].AnimeData.player_ID;
+    console.error("Allmanga SheepFinderAnime2000 error", error);
+    return animeList[0].player_ID;
   }
 }
 async function formatEpisodeData(data) {
@@ -307,7 +312,7 @@ async function fetchMP4(hostname, url) {
 }
 class Allmanga {
   metadata = {
-    version: "1.11",
+    version: "1.12",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
@@ -391,7 +396,7 @@ class Allmanga {
       let tmpAnimeID = anime_id;
       if (animeData && !tmpAnimeID) {
         let data = await SearchAnimeInAllmanga(animeData.title.romaji, 1);
-        tmpAnimeID = findAnime(data.map((card) => ({ AnimeData: card })), animeData);
+        tmpAnimeID = SheepFinderAnime2000(data, animeData);
       }
       ;
       console.log(tmpAnimeID);

@@ -13,11 +13,11 @@
         "name": "Allmanga",
         "file": "/plugins/allmanga.js",
         "type": "player",
-        "ver": "1.11",
+        "ver": "1.12",
         "author": "Owca525",
         "urlWebsite": "https://allmanga.to",
         "icon": "https://allmanga.to/android-icon-192x192.png",
-        "sha256": "84c5e7480bbc1fa321937db5bad8cdd08c8ad0e011c3d63356c7989f82142925"
+        "sha256": "87f0baaef6cecd5a3f0c2f23f5fc805fb1c165236bd05b525b1ce2a867571140"
     },
     {
         "name": "AniZone",
@@ -32,20 +32,20 @@
         "name": "Lycoris.cafe",
         "file": "/plugins/lycoriscafe.js",
         "type": "player",
-        "ver": "1.1",
+        "ver": "1.2",
         "author": "Owca525",
         "urlWebsite": "https://www.lycoris.cafe",
         "icon": "https://www.lycoris.cafe/favicon.ico",
-        "sha256": "d343756907ef919a33e886209140565402f4aabad5ad8aaad692d33887b52807"
+        "sha256": "8a528b680e30fce94c7eeb6b003a55a5fd9ef19d829511cdd10e74cf2b18e659"
     },
     {
         "name": "Animetsu.Live",
         "file": "/plugins/animetsu.js",
         "type": "player",
-        "ver": "1.0",
+        "ver": "1.1",
         "author": "Owca525",
         "urlWebsite": "https://animetsu.live/",
         "icon": "https://animetsu.live/apple-touch-icon.png",
-        "sha256": "d8ff74c8a3ff0178a0d7c67432247631e3ce59476f466ea02074f54d2a8f150e"
+        "sha256": "414a595988dd7363949a497d058baf3eb7874b28736283238941908e87818eff"
     }
 ]
