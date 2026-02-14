@@ -176,11 +176,6 @@ async function SearchAnimeInAllmanga(name, page) {
 }
 function SheepFinderAnime2000(animeList, anime) {
   try {
-    if (anime.id != "") {
-      console.log("ID Check");
-      const findedID = animeList.find((item) => item.id == anime.id);
-      if (findedID) return findedID.player_ID;
-    }
     console.log("First Check", animeList);
     if (animeList.length <= 0) return void 0;
     if (animeList.length == 1) return animeList[0].player_ID;
@@ -312,7 +307,7 @@ async function fetchMP4(hostname, url) {
 }
 class Allmanga {
   metadata = {
-    version: "1.12",
+    version: "1.13",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",

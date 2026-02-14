@@ -13,11 +13,11 @@
         "name": "Allmanga",
         "file": "/plugins/allmanga.js",
         "type": "player",
-        "ver": "1.12",
+        "ver": "1.13",
         "author": "Owca525",
         "urlWebsite": "https://allmanga.to",
         "icon": "https://allmanga.to/android-icon-192x192.png",
-        "sha256": "87f0baaef6cecd5a3f0c2f23f5fc805fb1c165236bd05b525b1ce2a867571140"
+        "sha256": "eec17ac22a6c3217e1ebdf604c561a506572faac91af830eb8c4d62699e07581"
     },
     {
         "name": "AniZone",
