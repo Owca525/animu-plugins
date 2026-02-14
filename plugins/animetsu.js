@@ -1,6 +1,6 @@
 import { request, t, makeSmallText } from "./index.js";
-const BACKEND = "https://ani.metsu.site";
-const WEBSITE = "https://animetsu.bz/";
+const BACKEND = "https://b.animetsu.live/";
+const WEBSITE = "https://animetsu.live/";
 const HEADER = {
   "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
   "Origin": WEBSITE,
@@ -87,13 +87,29 @@ async function extractResolutions(episode, type, playerData2, server) {
 }
 class Animetsu {
   metadata = {
-    version: "1.1",
+    version: "1.2",
     name: "Animetsu.Live",
     icon: "https://animetsu.live/apple-touch-icon.png",
     author: "Owca525",
     supportLang: ["en"],
     urlWebsite: WEBSITE
   };
+  config = {
+    Backend: BACKEND
+  };
+  // checkBackend = async () => {
+  //     const response = await request(`${WEBSITE}assets/index.js?ex`)
+  //     if (!response.success) return
+  //     const tmp = response.text.match(/https:\/\/([^.]+)\.\$\{window\?\.\location\?\.\hostname\}/)
+  //     if (!tmp) return
+  //     const url = `${tmp[0].replaceAll("${window?.location?.hostname}", new URL(WEBSITE).hostname)}/`
+  //     if (!url.startsWith("https://")) return
+  //     if (url != this.config.Backend) {
+  //     }
+  // }
+  // constructor() {
+  //     this.checkBackend()
+  // }
   extractPlayerData = async (_type, episode, id) => {
     try {
       let response = await request(`${BACKEND}/api/anime/servers/${id}/${episode}`, { headers: HEADER });
