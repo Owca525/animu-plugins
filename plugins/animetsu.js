@@ -8,7 +8,6 @@ const HEADER = {
 };
 function preaperURL(str) {
   if (!str) return str;
-  console.log(str.replaceAll("//", "/").replace("/", "https://"));
   return str.replaceAll("//", "/").replace("https:/", "https://");
 }
 function SheepFinderAnime2000(animeList, anime) {
@@ -92,7 +91,7 @@ async function extractResolutions(episode, type, playerData2, server) {
 }
 class Animetsu {
   metadata = {
-    version: "1.3",
+    version: "1.4",
     name: "Animetsu.Live",
     icon: "https://animetsu.live/apple-touch-icon.png",
     author: "Owca525",
@@ -129,8 +128,8 @@ class Animetsu {
           hostname: element["id"],
           defaultHost: element["default"],
           resolution: [],
-          extractResolution: async (playerData2) => await extractResolutions(episode, "sub", playerData2, id),
-          isDubbing: async (playerData2) => (await extractResolutions(episode, "dub", playerData2, id))?.resolution
+          extractResolution: async (playerData2) => await extractResolutions(playerData2.episode.currentEpisode, "sub", playerData2, id),
+          isDubbing: async (playerData2) => (await extractResolutions(playerData2.episode.currentEpisode, "dub", playerData2, id))?.resolution
         });
       }
       return data;
