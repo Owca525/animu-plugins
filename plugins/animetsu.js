@@ -55,7 +55,7 @@ async function extractResolutions(episode, type, playerData2, server) {
   try {
     if (!server) return void 0;
     let response = await request(preaperURL(`${BACKEND}/api/anime/oppai/${server}/${episode}?server=default&source_type=${type}`), { headers: HEADER });
-    if (!response.success || !response.json) return void 0;
+    if (!response.success || !response.json || response.text == "{}") return void 0;
     let subtitles = [];
     if (response.json["subtitles"]) {
       subtitles = response.json["subtitles"].map((element) => {
@@ -86,12 +86,12 @@ async function extractResolutions(episode, type, playerData2, server) {
     };
   } catch (error) {
     console.error("extractResolutions/Animetsu", error);
-    return;
+    return void 0;
   }
 }
 class Animetsu {
   metadata = {
-    version: "1.4",
+    version: "1.5",
     name: "Animetsu.Live",
     icon: "https://animetsu.live/apple-touch-icon.png",
     author: "Owca525",
@@ -154,11 +154,10 @@ class Animetsu {
       let episodes = response.json.map((element) => {
         return {
           ep: element["ep_num"],
-          img: `${BACKEND}/proxy${element["img"]}`,
+          img: `https://ani.metsu.site/proxy${element["img"]}`,
           title: element["name"]
         };
       });
-      console.log(episodes);
       return {
         player_id: animeID,
         episodesData: [{
