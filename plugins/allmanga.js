@@ -1,4 +1,4 @@
-import { request, runYT_DLP, makeSmallText, convertMsToMinutes } from "./index.js";
+import { request, makeSmallText, convertMsToMinutes } from "./index.js";
 const HASH_SEARCH = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c";
 const HASH_INFO = "043448386c7a686bc2aabfbb6b80f6074e795d350df48015023b079527b0848a";
 const HASH_PLAYER = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec";
@@ -9,8 +9,7 @@ const header = {
   "Referer": "https://allmanga.to/"
   // "Host": "api.allanime.day"
 };
-const source_names = ["Yt-mp4", "Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Mp4", "Ok"];
-const normalUrls = ["Ok"];
+const source_names = ["Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Mp4"];
 const mapping = {
   "79": "A",
   "7a": "B",
@@ -100,8 +99,11 @@ const mapping = {
 function findUrl(url, sourceName) {
   for (let index = 0; index < source_names.length; index++) {
     const element = source_names[index];
-    if (element.toLowerCase() == sourceName.toLowerCase() && normalUrls.includes(element)) return { url, decode: false };
-    if (element.toLowerCase() == sourceName.toLowerCase()) return { url: decodeText(url), decode: true };
+    console.log(sourceName, url);
+    if (element.toLowerCase() == sourceName.toLowerCase()) {
+      let tmpUrl = decodeText(url);
+      return { url: tmpUrl, decode: !tmpUrl.startsWith("https://"), source: sourceName };
+    }
   }
   return;
 }
@@ -285,29 +287,9 @@ async function requestForUrl(url) {
   });
   return listUrls;
 }
-async function fetchMP4(hostname, url) {
-  try {
-    let resoltutions = [];
-    const extractedata = await runYT_DLP(url);
-    for (let index = 0; index < extractedata.formats.length; index++) {
-      const element = extractedata.formats[index];
-      if ("format_id" in element && element["format_id"].includes("dash-video")) resoltutions.push({
-        res: `${element["height"]}`,
-        url: element["url"],
-        reqHeader: element["http_headers"]
-      });
-    }
-    return {
-      hostname,
-      resolution: resoltutions.reverse()
-    };
-  } catch (error) {
-    return void 0;
-  }
-}
 class Allmanga {
   metadata = {
-    version: "1.13",
+    version: "1.14",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
@@ -331,19 +313,32 @@ class Allmanga {
       const urls = sources.map(
         (tmp) => findUrl(tmp.sourceUrl, tmp.sourceName)
       ).filter((item) => item !== void 0);
+      const maxPriority = Math.max(...sources.map((i) => i.priority));
+      const updatedItems = sources.map((item) => ({
+        ...item,
+        active: item.priority === maxPriority
+      }));
       let data = [];
       for (let i = 0; i < urls.length; i++) {
         const element = urls[i];
         if (element.decode) {
           let tmp = await requestForUrl(element.url);
-          if (tmp) data.push(tmp);
+          if (tmp) data.push({
+            ...tmp,
+            defaultHost: updatedItems.find((item) => item["sourceName"] == element.source ? item["active"] : false)
+          });
         }
         if (!element.decode) {
           const urlObject = new URL(element.url);
           data.push({
             hostname: urlObject.hostname,
-            resolution: [],
-            extractResolution: async () => await fetchMP4(urlObject.hostname, element.url)
+            defaultHost: updatedItems.find((item) => item["sourceName"] == element.source ? item["active"] : false),
+            resolution: [{
+              res: "",
+              url: element.url,
+              reqHeader: header
+            }]
+            // extractResolution: async () => await fetchMP4(urlObject.hostname, element.url)
           });
         }
       }
