@@ -90,29 +90,13 @@ async function extractResolutions(episode, type, playerData2, server) {
 }
 class Animetsu {
   metadata = {
-    version: "1.6",
+    version: "1.7",
     name: "Animetsu.Live",
     icon: "https://animetsu.live/apple-touch-icon.png",
     author: "Owca525",
     supportLang: ["en"],
     urlWebsite: WEBSITE
   };
-  config = {
-    Backend: BACKEND
-  };
-  // checkBackend = async () => {
-  //     const response = await request(`${WEBSITE}assets/index.js?ex`)
-  //     if (!response.success) return
-  //     const tmp = response.text.match(/https:\/\/([^.]+)\.\$\{window\?\.\location\?\.\hostname\}/)
-  //     if (!tmp) return
-  //     const url = `${tmp[0].replaceAll("${window?.location?.hostname}", new URL(WEBSITE).hostname)}/`
-  //     if (!url.startsWith("https://")) return
-  //     if (url != this.config.Backend) {
-  //     }
-  // }
-  // constructor() {
-  //     this.checkBackend()
-  // }
   extractPlayerData = async (_type, episode, id) => {
     try {
       let response = await request(preaperURL(`${BACKEND}/api/anime/servers/${id}/${episode}`), { headers: HEADER });
@@ -183,9 +167,12 @@ class Animetsu {
       const element = response.json.results[index];
       data.push({
         AnimeData: {
-          genres: void 0,
-          characters: [],
-          studios: [],
+          genres: element["genres"],
+          isAdult: element["is_adult"],
+          seasonYear: element["year"],
+          type: element["type"],
+          season: element["season"],
+          status: element["status"],
           title: element["title"],
           id: element["anilist_id"],
           player_ID: element["id"],
