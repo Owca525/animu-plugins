@@ -9,6 +9,16 @@ function preaperURL(str) {
   if (!str) return str;
   return str.replaceAll("//", "/").replace("https:/", "https://");
 }
+function convertStringToDateObject(date) {
+  try {
+    if (!date) return void 0;
+    const data = new Date(date);
+    return { month: data.getMonth(), day: data.getDay(), year: data.getFullYear() };
+  } catch (error) {
+    console.error("convertStringToDateObject/animetsu", error);
+    return void 0;
+  }
+}
 function SheepFinderAnime2000(animeList, anime) {
   try {
     if (anime.id != "") {
@@ -90,13 +100,29 @@ async function extractResolutions(episode, type, playerData2, server) {
 }
 class Animetsu {
   metadata = {
-    version: "1.7",
+    version: "1.8",
     name: "Animetsu.Live",
     icon: "https://animetsu.live/apple-touch-icon.png",
     author: "Owca525",
     supportLang: ["en"],
     urlWebsite: WEBSITE
   };
+  // config: { [key: string]: any; } = {
+  //     Backend: BACKEND
+  // };
+  // checkBackend = async () => {
+  //     const response = await request(`${WEBSITE}assets/index.js?ex`)
+  //     if (!response.success) return
+  //     const tmp = response.text.match(/https:\/\/([^.]+)\.\$\{window\?\.\location\?\.\hostname\}/)
+  //     if (!tmp) return
+  //     const url = `${tmp[0].replaceAll("${window?.location?.hostname}", new URL(WEBSITE).hostname)}/`
+  //     if (!url.startsWith("https://")) return
+  //     if (url != this.config.Backend) {
+  //     }
+  // }
+  // constructor() {
+  //     this.checkBackend()
+  // }
   extractPlayerData = async (_type, episode, id) => {
     try {
       let response = await request(preaperURL(`${BACKEND}/api/anime/servers/${id}/${episode}`), { headers: HEADER });
@@ -124,7 +150,7 @@ class Animetsu {
   extractEpisodeList = async (animeData, anime_id) => {
     try {
       let animeID = anime_id;
-      if (animeData) {
+      if (animeData && !anime_id) {
         const results = await this.searchAnime(animeData.title.romaji, 0);
         animeID = SheepFinderAnime2000(results.map((v) => v.AnimeData), animeData);
       }
@@ -175,7 +201,14 @@ class Animetsu {
           status: element["status"],
           title: element["title"],
           id: element["anilist_id"],
+          duration: element["duration"],
+          episodes: element["total_eps"],
           player_ID: element["id"],
+          description: element["description"],
+          bannerImage: element["banner"],
+          averageScore: element["average_score"],
+          startDate: convertStringToDateObject(element["start_date"]),
+          endDate: convertStringToDateObject(element["end_date"]),
           coverImage: element["cover_image"]["extraLarge"] ? element["cover_image"]["extraLarge"] : element["cover_image"]["large"]
         }
       });

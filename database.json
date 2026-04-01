@@ -42,10 +42,10 @@
         "name": "Animetsu.Live",
         "file": "/plugins/animetsu.js",
         "type": "player",
-        "ver": "1.7",
+        "ver": "1.8",
         "author": "Owca525",
         "urlWebsite": "https://animetsu.live/",
         "icon": "https://animetsu.live/apple-touch-icon.png",
-        "sha256": "b4295297fefe67a26ad4c8f5dec6ea0a49b28567ae4d13a1499578a8c6a25351"
+        "sha256": "7e4c43efc0e057b6894e8f2db210ae8f83dd8f300efdd26c01669d00c38ee096"
     }
 ]
