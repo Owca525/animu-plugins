@@ -47,5 +47,15 @@
         "urlWebsite": "https://animetsu.live/",
         "icon": "https://animetsu.live/apple-touch-icon.png",
         "sha256": "7e4c43efc0e057b6894e8f2db210ae8f83dd8f300efdd26c01669d00c38ee096"
+    },
+    {
+        "name": "Hanime.tv",
+        "file": "/plugins/hanimetv.js",
+        "type": "player",
+        "ver": "1.0",
+        "author": "Owca525",
+        "urlWebsite": "https://hanime.tv/",
+        "icon": "https://hanime.tv/apple-touch-icon-precomposed.png",
+        "sha256": "0d2f35d5503048214784d8c4ec0fe47ee26d2974ebbb83215e463109c9298a4f"
     }
 ]
