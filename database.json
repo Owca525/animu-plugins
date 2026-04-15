@@ -32,11 +32,11 @@
         "name": "Lycoris.cafe",
         "file": "/plugins/lycoriscafe.js",
         "type": "player",
-        "ver": "1.4",
+        "ver": "1.5",
         "author": "Owca525",
         "urlWebsite": "https://www.lycoris.cafe",
         "icon": "https://www.lycoris.cafe/favicon.ico",
-        "sha256": "953165c8c24b44a1e02fbbb2ddcbf3fb1cad5a362bacb7f4d70ced48bc9ac649"
+        "sha256": "16ad491e9986f218583975c9f2ee9f676a2218bf10535e8b071b3f96c6336045"
     },
     {
         "name": "Animetsu.Live",

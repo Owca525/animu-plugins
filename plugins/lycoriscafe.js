@@ -58,8 +58,6 @@ function detectResoltion(text) {
       return "720";
     case "FHD":
       return "1080";
-    case "SourceMKV":
-      return "Source";
   }
   return "Unknown";
 }
@@ -93,12 +91,15 @@ function convertToAnimeData(data) {
 async function requestToApi(anime_id) {
   let url = `${WEB}/api/anime/${anime_id}`;
   let req = await request(url, { headers: HEADER });
-  if (!req.success) return void 0;
+  if (!req.success) {
+    console.error("Failed Request requestToApi/lycorisCafe", anime_id, req);
+    return void 0;
+  }
   return { data: req.json };
 }
 class LycorisCafe {
   metadata = {
-    version: "1.4",
+    version: "1.5",
     name: "Lycoris.cafe",
     author: "Owca525",
     icon: "https://www.lycoris.cafe/favicon.ico",
@@ -194,7 +195,10 @@ class LycorisCafe {
   searchAnime = async (name, page, _params) => {
     let url = `${WEB}/api/search?page=${page}&pageSize=12&search=${name}&genres=&status=&format=&year=&season=&source=&sortField=popularity&sortDirection=desc&preferRomaji=true`;
     const req = await request(url, { headers: HEADER });
-    if (!req.success || !req.json) return [];
+    if (!req.success || !req.json) {
+      console.warn("Failed Request searchAnime/LycorisCafe", req);
+      return [];
+    }
     let data = req.json.data.map((element) => {
       return { AnimeData: convertToAnimeData(element) };
     });
