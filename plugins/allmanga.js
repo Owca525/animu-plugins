@@ -6,10 +6,10 @@ const HASH_DATA = "c8f3ac51f598e630a1d09d7f7fb6924cff23277f354a23e473b962a367880
 const API_WEB = "https://api.allanime.day";
 const header = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
-  "Referer": "https://allmanga.to/"
-  // "Host": "api.allanime.day"
+  "Referer": "https://allmanga.to/",
+  "Origin": "https://allmanga.to/"
 };
-const source_names = ["Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Mp4"];
+const source_names = ["Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Mp4", "Yt-mp4"];
 const mapping = {
   "79": "A",
   "7a": "B",
@@ -99,7 +99,6 @@ const mapping = {
 function findUrl(url, sourceName) {
   for (let index = 0; index < source_names.length; index++) {
     const element = source_names[index];
-    console.log(sourceName, url);
     if (element.toLowerCase() == sourceName.toLowerCase()) {
       let tmpUrl = decodeText(url);
       return { url: tmpUrl, decode: !tmpUrl.startsWith("https://"), source: sourceName };
@@ -158,8 +157,41 @@ function converterData(data) {
 async function requestToApi(variables, hash, header2) {
   let url = `${API_WEB}/api?variables=${variables}&extensions={"persistedQuery":{"version":1,"sha256Hash":"${hash}"}}`;
   let data = await request(url, { headers: header2 });
-  if (!data.success || data.json && data.json["errors"]) console.error("Allmanga request", data, url, header2);
+  if (!data.success || data.json && data.json["error"]) console.error("Allmanga request", data, url, header2);
   return data;
+}
+function textToArray(str) {
+  const binary = atob(str);
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return bytes;
+}
+function decodeFuckingBase64Code(fuckingEncryptedCode) {
+  const cleaned = fuckingEncryptedCode.trim().replace(/[^+/0-9A-Za-z-_]/g, "");
+  if (cleaned.length < 2) return textToArray("");
+  return textToArray(cleaned.padEnd(
+    cleaned.length + (4 - cleaned.length % 4) % 4,
+    "="
+  ));
+}
+async function fuckThisEncryptionMethod(encryptedMotherFucker) {
+  const fuckingKey = new TextEncoder().encode("SimtVuagFbGR2K7P");
+  const randomShitHashIDKWhy = await crypto.subtle.digest("SHA-256", fuckingKey);
+  const FINALFUCKINGKEY = await crypto.subtle.importKey(
+    "raw",
+    randomShitHashIDKWhy,
+    { name: "AES-GCM" },
+    false,
+    ["decrypt"]
+  );
+  const StupidArrayGayNWord = decodeFuckingBase64Code(encryptedMotherFucker);
+  const ivFUCK = StupidArrayGayNWord.slice(0, 12);
+  const encryptedShit = StupidArrayGayNWord.slice(12);
+  const FINNALCUM = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv: ivFUCK },
+    FINALFUCKINGKEY,
+    encryptedShit
+  );
+  return JSON.parse(new TextDecoder().decode(FINNALCUM));
 }
 async function SearchAnimeInAllmanga(name, page) {
   try {
@@ -247,8 +279,11 @@ async function extractEpisodes(anime_id, episode) {
 async function extractInformation(id) {
   let variables = `{"_id":"${id}"}`;
   const resp = await requestToApi(variables, HASH_INFO, header);
-  if (!resp.success || !resp.json || !resp.json.data.show) return [];
-  let anime_data = resp.json.data.show;
+  if (!resp.success || !resp.json || resp.json["errors"]) {
+    console.warn(resp);
+    return [];
+  }
+  let anime_data = resp.json["data"]["show"];
   let episodes = await extractEpisodes(id, { start: parseInt(anime_data.availableEpisodesDetail.sub.at(-1)), end: parseInt(anime_data.availableEpisodesDetail.sub[0]) });
   if (episodes.length <= 0) episodes = anime_data["availableEpisodesDetail"]["sub"].map((v) => ({ ep: v }));
   episodes = episodes.sort((a, b) => Number(a.ep) - Number(b.ep));
@@ -289,7 +324,7 @@ async function requestForUrl(url) {
 }
 class Allmanga {
   metadata = {
-    version: "1.14",
+    version: "1.15",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
@@ -308,8 +343,8 @@ class Allmanga {
     try {
       const resp = await requestToApi(variables, HASH_PLAYER, header);
       if (!resp.success || !resp.json) return [];
-      let jsonObject = resp.json;
-      const sources = jsonObject.data.episode.sourceUrls;
+      let jsonObject = await fuckThisEncryptionMethod(resp.json["data"]["tobeparsed"]);
+      const sources = jsonObject["episode"]["sourceUrls"];
       const urls = sources.map(
         (tmp) => findUrl(tmp.sourceUrl, tmp.sourceName)
       ).filter((item) => item !== void 0);
@@ -334,7 +369,7 @@ class Allmanga {
             hostname: urlObject.hostname,
             defaultHost: updatedItems.find((item) => item["sourceName"] == element.source ? item["active"] : false),
             resolution: [{
-              res: "",
+              res: "1080",
               url: element.url,
               reqHeader: header
             }]
@@ -342,34 +377,13 @@ class Allmanga {
           });
         }
       }
-      if (type == "dub" && jsonObject.data.episode.episodeInfo.vidInforsdub) {
+      if (jsonObject["episode"]["episodeInfo"][`vidInfors${type}`]) {
+        const main = jsonObject["episode"]["episodeInfo"][`vidInfors${type}`];
         data.push({
           hostname: "wp.youtube-anime.com",
           resolution: [{
-            res: jsonObject.data.episode.episodeInfo.vidInforsdub.vidResolution.toString(),
-            url: `https://aln.youtube-anime.com${jsonObject.data.episode.episodeInfo.vidInforsdub.vidPath}`,
-            hls: false,
-            doNotUseBackend: true
-          }]
-        });
-      }
-      if (type == "raw" && jsonObject.data.episode.episodeInfo.vidInforsraw) {
-        data.push({
-          hostname: "wp.youtube-anime.com",
-          resolution: [{
-            res: jsonObject.data.episode.episodeInfo.vidInforsraw.vidResolution.toString(),
-            url: `https://aln.youtube-anime.com${jsonObject.data.episode.episodeInfo.vidInforsraw.vidPath}`,
-            hls: false,
-            doNotUseBackend: true
-          }]
-        });
-      }
-      if (type == "sub" && jsonObject.data.episode.episodeInfo.vidInforssub) {
-        data.push({
-          hostname: "wp.youtube-anime.com",
-          resolution: [{
-            res: jsonObject.data.episode.episodeInfo.vidInforssub.vidResolution.toString(),
-            url: `https://aln.youtube-anime.com${jsonObject.data.episode.episodeInfo.vidInforssub.vidPath}`,
+            res: main["vidResolution"].toString(),
+            url: `https://aln.youtube-anime.com${main["vidPath"]}`,
             hls: false,
             doNotUseBackend: true
           }]
@@ -389,7 +403,6 @@ class Allmanga {
         tmpAnimeID = SheepFinderAnime2000(data, animeData);
       }
       ;
-      console.log(tmpAnimeID);
       if (!tmpAnimeID || tmpAnimeID == "") return;
       let episodeList2 = await extractInformation(tmpAnimeID);
       return { player_id: tmpAnimeID, episodesData: episodeList2 };
