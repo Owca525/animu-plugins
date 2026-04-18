@@ -57,5 +57,15 @@
         "urlWebsite": "https://hanime.tv/",
         "icon": "https://hanime.tv/apple-touch-icon-precomposed.png",
         "sha256": "0d2f35d5503048214784d8c4ec0fe47ee26d2974ebbb83215e463109c9298a4f"
+    },
+    {
+        "name": "AnimePahe",
+        "file": "/plugins/animepahe.js",
+        "type": "player",
+        "ver": "1.0",
+        "author": "Owca525",
+        "urlWebsite": "https://animepahe.pw/",
+        "icon": "https://animepahe.pw/favicon-96x96.png",
+        "sha256": "876730ee29ad77346a92a9ef7ddac2e50c165f97b859a56d019b0ef51d51785c"
     }
 ]

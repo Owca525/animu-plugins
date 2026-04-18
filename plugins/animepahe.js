@@ -1,0 +1,251 @@
+import { request, makeSmallText } from "./index.js";
+const WEBSITE = "https://animepahe.pw";
+const header = {
+  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+  "Referer": WEBSITE,
+  "Cookie": "__ddgid_=rxaWYPF7aoOXKtn7; __ddg2_=IPvarMbSedUW2ZAe; __ddg1_=T4CBje2yYmFKRIzHOw7q; res=1080; aud=jpn; av1=0; ddg_last_challenge=1775827819966; latest=3; XSRF-TOKEN=eyJpdiI6IkJvT1g2VU0rdEk3ZmYxdkFZZ09qbUE9PSIsInZhbHVlIjoiRTk0eE9ZWnNCcEFIT1NDdXB1S3BPSWhGUHMvWHBSNmVFWjMrdTNQamJZeDBveEtUNTh0bmlRdWMzVUQ2aEJuelJuRkZ4WU13Q0daZ3lIbGkybk9WMkRvZUt6a2hBcnVYcGxTY2NWZWlzYzJ3VEFZNHkyVlBpcm42N3dGOFlIdmwiLCJtYWMiOiI4Y2EyYmIwOTk1MGI2ZmQ1MjA1NTkyMjM0YzY1NWRiZWFlOGNmOGU4MjZlNGMzYjQ1OTIxN2VlMjcyZjg3MjBkIiwidGFnIjoiIn0%3D; animepahe_session=eyJpdiI6InZOVkozRU9BS2dPeDBJbkdDM1gwU2c9PSIsInZhbHVlIjoiYWExOE5qTjZ5TXYrbW9sKzhQbnhOb20xYVNiTm9HQ0k0cmZ6cUg0amtBcVp3dVBtTzlNOVNEYytZL1BKcFE4d0dZaWpWMUxvU24zbmp0WUh6MjFhS1E4RFJ3QVEzY2NnQ1NjK3hHaEpIY0RTU2FSZlEyWmhRQ1AzK0ZBUE80WnAiLCJtYWMiOiI0ODEwZjY4N2Y4NjBlNTgxMjBjN2U4NWZhODE2NjJkNWI1ZmVjZmZiZWI5OTcxMTM0ZDQwZjAzZTE3YzJlNDI2IiwidGFnIjoiIn0%3D; __ddg8_=p2oEfIz1oBRPzKIq; __ddg10_=1776518926; __ddg9_=109.243.146.23"
+};
+const playerHeader = {
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0",
+  Accept: "*/*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br, zstd",
+  Origin: "https://kwik.cx",
+  "Sec-GPC": "1",
+  Connection: "keep-alive",
+  Referer: "https://kwik.cx/",
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "cross-site"
+};
+function SheepFinderAnime2000(animeList, anime) {
+  try {
+    console.log("First Check", animeList);
+    if (animeList.length <= 0) return void 0;
+    if (animeList.length == 1) return animeList[0].player_ID;
+    let seasonYearFilter = animeList.filter((element) => element.seasonYear == anime.seasonYear);
+    console.log("Second Check", seasonYearFilter);
+    if (seasonYearFilter.length <= 0) return void 0;
+    if (seasonYearFilter.length == 1) return seasonYearFilter[0].player_ID;
+    let seasonFilter = seasonYearFilter.filter((element) => makeSmallText(element.season) == makeSmallText(anime.season));
+    console.log("Third Check", seasonYearFilter);
+    if (seasonFilter.length <= 0) return void 0;
+    if (seasonFilter.length == 1) return seasonFilter[0].player_ID;
+    let episodesFilter = void 0;
+    if (anime.episodes) {
+      episodesFilter = seasonFilter.filter((element) => element.episodes == anime.episodes);
+      console.log("Four Check", episodesFilter);
+      if (episodesFilter.length <= 0) return void 0;
+      if (episodesFilter.length == 1) return episodesFilter[0].player_ID;
+    }
+    let durationFilter = [];
+    if (episodesFilter) durationFilter = episodesFilter.filter((element) => element.duration == anime.duration);
+    else durationFilter = seasonFilter.filter((element) => element.duration == anime.duration);
+    console.log("Five Check", durationFilter);
+    if (durationFilter.length <= 0) return void 0;
+    if (durationFilter.length == 1) return durationFilter[0].player_ID;
+    let formatFilter = durationFilter.filter((element) => makeSmallText(element.format) == makeSmallText(anime.format));
+    console.log("Six Check", formatFilter);
+    if (formatFilter.length <= 0) return void 0;
+    if (formatFilter.length == 1) return formatFilter[0].player_ID;
+    return formatFilter[0].player_ID;
+  } catch (error) {
+    console.error("AniDap SheepFinderAnime2000 error", error);
+    return animeList[0].player_ID;
+  }
+}
+function convertToAnimeData(data) {
+  return {
+    AnimeData: {
+      title: {
+        native: data["title"],
+        romaji: data["title"]
+      },
+      id: "",
+      format: data["type"],
+      episodes: data["episodes"],
+      season: data["season"],
+      seasonYear: data["year"],
+      coverImage: data["poster"],
+      player_ID: data["session"]
+    }
+  };
+}
+const payload = `
+globalThis.document = {
+    querySelector: () => ""
+}
+class Plyr {
+    constructor(element, options = {}) {}
+}
+
+class Hls {
+    constructor(_config = {}) {}
+
+    static isSupported() {
+        return true
+    }
+    loadSource(url) {
+        postMessage({ url: url })
+    }
+}
+`;
+async function extractResolution(url) {
+  const htmlResponse = await request(url, { headers: header });
+  if (!htmlResponse["success"]) return;
+  const scripts = Array.from(
+    htmlResponse["text"].matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)
+  ).map((m) => m[1]).filter((code) => code.includes("eval"));
+  const blob = new Blob([payload + scripts], { type: "text/javascript" });
+  const payloadURL = URL.createObjectURL(blob);
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(payloadURL);
+    worker.postMessage(htmlResponse.text);
+    worker.onmessage = (event) => {
+      if (event["data"]["url"]) {
+        resolve({ url: event["data"]["url"], header: htmlResponse["responseHeader"] });
+      } else {
+        reject(void 0);
+      }
+      worker.terminate();
+    };
+  });
+}
+class AnimePahe {
+  metadata = {
+    version: "1.0",
+    name: "AnimePahe",
+    author: "Owca525",
+    supportLang: ["en"],
+    urlWebsite: WEBSITE,
+    icon: `${WEBSITE}/favicon-96x96.png`
+  };
+  cache = [];
+  extractPlayerData = async (_type, episode, id) => {
+    if (this.cache[id] == void 0) await this.extractEpisodeList(void 0, id);
+    if (this.cache[id] == void 0) return [];
+    const find = this.cache[id][parseInt(episode) - 1];
+    if (!find) return [];
+    const episodeID = find["session"];
+    const htmlResponse = await request(`${WEBSITE}/play/${id}/${episodeID}`, { headers: header });
+    if (!htmlResponse["success"]) return [];
+    const tagRegex = /<[^>]*data-src=["'][^"']+["'][^>]*>/g;
+    let match;
+    let results = [];
+    while ((match = tagRegex.exec(htmlResponse.text)) !== null) {
+      const tag = match[0];
+      if (!tag.startsWith("<button")) continue;
+      const getAttr = (name) => {
+        const m = tag.match(new RegExp(`${name}=["']([^"']+)["']`));
+        return m ? m[1] : null;
+      };
+      results.push({
+        src: getAttr("data-src"),
+        fansub: getAttr("data-fansub"),
+        resolution: getAttr("data-resolution"),
+        audio: getAttr("data-audio")
+      });
+    }
+    let dubbingRes = results.filter((v) => v["audio"] == "eng");
+    results = results.filter((v) => v["audio"] == "jpn");
+    let data = [];
+    for (let index = 0; index < results.length; index++) {
+      const element = results[index];
+      const urlResp = await extractResolution(element["src"]);
+      if (!urlResp) continue;
+      data.push({
+        res: element["resolution"],
+        url: urlResp["url"],
+        hls: true,
+        reqHeader: {
+          ...urlResp["header"],
+          ...playerHeader
+        }
+      });
+    }
+    let finnalContent = {
+      hostname: "AnimePahe",
+      resolution: data.reverse(),
+      splitHLS: true
+    };
+    if (dubbingRes.length > 0) {
+      finnalContent = {
+        ...finnalContent,
+        isDubbing: async () => {
+          let dubData = [];
+          for (let index = 0; index < dubbingRes.length; index++) {
+            const element = dubbingRes[index];
+            const urlResp = await extractResolution(element["src"]);
+            if (!urlResp) continue;
+            dubData.push({
+              res: element["resolution"],
+              url: urlResp["url"],
+              reqHeader: {
+                ...urlResp["header"],
+                ...playerHeader
+              }
+            });
+          }
+          return dubData.reverse();
+        }
+      };
+    }
+    return [finnalContent];
+  };
+  extractEpisodeList = async (animeData, anime_id) => {
+    if (anime_id && this.cache[anime_id]) {
+      return {
+        player_id: anime_id,
+        episodesData: [{
+          episodes: this.cache[anime_id].map((v, i) => ({
+            ep: i + 1,
+            img: v["snapshot"],
+            title: v["title"]
+          })),
+          type: "sub"
+        }]
+      };
+    }
+    if (animeData && !anime_id) {
+      const search = await this.searchAnime(animeData.title.romaji, 1);
+      if (search.length <= 0) return;
+      anime_id = SheepFinderAnime2000(search.map((v) => v.AnimeData), animeData);
+    }
+    if (!anime_id) return;
+    const episodeResponse = await request(`${WEBSITE}/api?m=release&id=${anime_id}&sort=episode_asc&page=1`, { headers: header });
+    if (!episodeResponse["success"] || !episodeResponse["json"]) return;
+    this.cache = {
+      ...this.cache,
+      [anime_id]: episodeResponse["json"]["data"]
+    };
+    return {
+      player_id: anime_id,
+      episodesData: [{
+        episodes: episodeResponse["json"]["data"].map((v, i) => ({
+          ep: i + 1,
+          img: v["snapshot"],
+          title: v["title"]
+        })),
+        type: "sub"
+      }]
+    };
+  };
+  extractOnlyEpisodesList = async (_type, anime_id) => {
+    const episodes = await this.extractEpisodeList(void 0, anime_id);
+    if (!episodes) return [];
+    return episodes["episodesData"][0]["episodes"];
+  };
+  searchAnime = async (name, _page, _params) => {
+    try {
+      const searchResponse = await request(`${WEBSITE}/api?m=search&q=${name}`, { headers: header });
+      if (!searchResponse["success"] || !searchResponse["json"]) return [];
+      return searchResponse["json"]["data"].map((v) => convertToAnimeData(v));
+    } catch (error) {
+      console.log("Error in searchAnime/aowu", error);
+      return [];
+    }
+  };
+}
+export {
+  AnimePahe as default
+};
