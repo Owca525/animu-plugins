@@ -18,6 +18,16 @@ const playerHeader = {
   "Sec-Fetch-Mode": "cors",
   "Sec-Fetch-Site": "cross-site"
 };
+function convertTimeStringToSeconds(time) {
+  if (!time) return void 0;
+  const [hours, minutes, seconds] = time.split(":").map(Number);
+  return hours * 3600 + minutes * 60 + seconds;
+}
+function dateToUnix(dateStr) {
+  if (!dateStr) return void 0;
+  const date = new Date(dateStr);
+  return Math.floor(date.getTime() / 1e3);
+}
 function SheepFinderAnime2000(animeList, anime) {
   try {
     console.log("First Check", animeList);
@@ -91,7 +101,7 @@ class Hls {
 }
 `;
 async function extractResolution(url) {
-  const htmlResponse = await request(url, { headers: header });
+  const htmlResponse = await request();
   if (!htmlResponse["success"]) return;
   const scripts = Array.from(
     htmlResponse["text"].matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)
@@ -113,21 +123,21 @@ async function extractResolution(url) {
 }
 class AnimePahe {
   metadata = {
-    version: "1.0",
+    version: "1.1",
     name: "AnimePahe",
     author: "Owca525",
     supportLang: ["en"],
-    urlWebsite: WEBSITE,
-    icon: `${WEBSITE}/favicon-96x96.png`
+    urlWebsite: WEBSITE
   };
   cache = [];
   extractPlayerData = async (_type, episode, id) => {
     if (this.cache[id] == void 0) await this.extractEpisodeList(void 0, id);
     if (this.cache[id] == void 0) return [];
-    const find = this.cache[id][parseInt(episode) - 1];
+    let mainEpisode = typeof episode == "object" ? episode.ep : episode;
+    const find = this.cache[id][parseInt(mainEpisode) - 1];
     if (!find) return [];
-    const episodeID = find["session"];
-    const htmlResponse = await request(`${WEBSITE}/play/${id}/${episodeID}`, { headers: header });
+    find["session"];
+    const htmlResponse = await request();
     if (!htmlResponse["success"]) return [];
     const tagRegex = /<[^>]*data-src=["'][^"']+["'][^>]*>/g;
     let match;
@@ -200,7 +210,11 @@ class AnimePahe {
           episodes: this.cache[anime_id].map((v, i) => ({
             ep: i + 1,
             img: v["snapshot"],
-            title: v["title"]
+            title: v["title"],
+            durration: convertTimeStringToSeconds(v["duration"]),
+            blueRayVer: v["disc"] == "BD",
+            episodeID: v["session"],
+            uploadedUnix: dateToUnix(v["created_at"])
           })),
           type: "sub"
         }]
@@ -212,7 +226,7 @@ class AnimePahe {
       anime_id = SheepFinderAnime2000(search.map((v) => v.AnimeData), animeData);
     }
     if (!anime_id) return;
-    const episodeResponse = await request(`${WEBSITE}/api?m=release&id=${anime_id}&sort=episode_asc&page=1`, { headers: header });
+    const episodeResponse = await request();
     if (!episodeResponse["success"] || !episodeResponse["json"]) return;
     this.cache = {
       ...this.cache,
@@ -224,7 +238,11 @@ class AnimePahe {
         episodes: episodeResponse["json"]["data"].map((v, i) => ({
           ep: i + 1,
           img: v["snapshot"],
-          title: v["title"]
+          title: v["title"],
+          durration: convertTimeStringToSeconds(v["duration"]),
+          blueRayVer: v["disc"] == "BD",
+          episodeID: v["session"],
+          uploadedUnix: dateToUnix(v["created_at"])
         })),
         type: "sub"
       }]
@@ -241,11 +259,13 @@ class AnimePahe {
       if (!searchResponse["success"] || !searchResponse["json"]) return [];
       return searchResponse["json"]["data"].map((v) => convertToAnimeData(v));
     } catch (error) {
-      console.log("Error in searchAnime/aowu", error);
+      console.error("Error in searchAnime/aowu", error);
       return [];
     }
   };
 }
 export {
+  convertTimeStringToSeconds,
+  dateToUnix,
   AnimePahe as default
 };

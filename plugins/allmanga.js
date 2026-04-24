@@ -156,42 +156,46 @@ function converterData(data) {
 }
 async function requestToApi(variables, hash, header2) {
   let url = `${API_WEB}/api?variables=${variables}&extensions={"persistedQuery":{"version":1,"sha256Hash":"${hash}"}}`;
-  let data = await request(url, { headers: header2 });
+  let data = await request();
   if (!data.success || data.json && data.json["error"]) console.error("Allmanga request", data, url, header2);
   return data;
 }
-function textToArray(str) {
-  const binary = atob(str);
-  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+function FuckBufferDosentWorkInElectron(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
   return bytes;
 }
-function decodeFuckingBase64Code(fuckingEncryptedCode) {
-  const cleaned = fuckingEncryptedCode.trim().replace(/[^+/0-9A-Za-z-_]/g, "");
-  if (cleaned.length < 2) return textToArray("");
-  return textToArray(cleaned.padEnd(
-    cleaned.length + (4 - cleaned.length % 4) % 4,
-    "="
-  ));
-}
 async function fuckThisEncryptionMethod(encryptedMotherFucker) {
-  const fuckingKey = new TextEncoder().encode("SimtVuagFbGR2K7P");
-  const randomShitHashIDKWhy = await crypto.subtle.digest("SHA-256", fuckingKey);
-  const FINALFUCKINGKEY = await crypto.subtle.importKey(
-    "raw",
-    randomShitHashIDKWhy,
-    { name: "AES-GCM" },
-    false,
-    ["decrypt"]
-  );
-  const StupidArrayGayNWord = decodeFuckingBase64Code(encryptedMotherFucker);
-  const ivFUCK = StupidArrayGayNWord.slice(0, 12);
-  const encryptedShit = StupidArrayGayNWord.slice(12);
-  const FINNALCUM = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: ivFUCK },
-    FINALFUCKINGKEY,
-    encryptedShit
-  );
-  return JSON.parse(new TextDecoder().decode(FINNALCUM));
+  let bufferEncrypted = FuckBufferDosentWorkInElectron(encryptedMotherFucker);
+  let version = bufferEncrypted[0];
+  if (version !== 1) {
+    console.error("ALLMANGA CHANGED THEY FUCKING VERSION OF ENCRYPTION IMEDITLY SEND AS BUG REPORT NOW HAVE VERSION: ", version);
+    return;
+  }
+  const encodedKey = new TextEncoder().encode(`Xot36i3lK3:v${version}`);
+  const digestetCUM = await crypto.subtle.digest("SHA-256", encodedKey);
+  const cumKey = await crypto.subtle.importKey("raw", digestetCUM, {
+    name: "AES-GCM"
+  }, false, ["decrypt"]);
+  const randomSlicedBufferCum = bufferEncrypted.slice(1, 13);
+  let w = bufferEncrypted.slice(bufferEncrypted.length - 16);
+  let v = bufferEncrypted.slice(13, bufferEncrypted.length - 16);
+  let O = new Uint8Array(v.length + w.length);
+  O.set(v);
+  O.set(w, v.length);
+  const decryptedCum = await crypto.subtle.decrypt({
+    name: "AES-GCM",
+    iv: randomSlicedBufferCum
+  }, cumKey, O);
+  return JSON.parse(new TextDecoder().decode(decryptedCum));
+}
+function dateToUnix(dateStr) {
+  if (!dateStr) return void 0;
+  const date = new Date(dateStr);
+  return Math.floor(date.getTime() / 1e3);
 }
 async function SearchAnimeInAllmanga(name, page) {
   try {
@@ -253,8 +257,10 @@ async function formatEpisodeData(data) {
       const thumbnail = element.thumbnails.filter((url) => url.startsWith("https"));
       finnallData.push({
         ep: element.episodeIdNum,
-        img: thumbnail.length > 0 ? thumbnail[0] : void 0,
-        title: element.notes ? element.notes.replace("<note-split>", " ") : void 0
+        img: thumbnail.length > 0 ? thumbnail[0] : `https://wp.youtube-anime.com/aln.youtube-anime.com${element["thumbnails"][0]}?w=480`,
+        title: element.notes ? element.notes.replace("<note-split>", " ") : void 0,
+        uploadedUnix: dateToUnix(element["uploadDates"]["sub"]),
+        durration: element["vidInforssub"] ? element["vidInforssub"]["vidDuration"] : void 0
       });
     }
     return finnallData;
@@ -304,11 +310,7 @@ async function extractInformation(id) {
 }
 async function requestForUrl(url) {
   if (url.startsWith("https")) return void 0;
-  const links = await request(`http://allanime.day${url.replace("clock", "clock.json")}`, {
-    headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
-    }
-  });
+  const links = await request(`http://allanime.day${url.replace("clock", "clock.json")}`);
   if (!links.success || !links.json) return void 0;
   let listUrls;
   links.json.links.forEach((element) => {
@@ -324,7 +326,7 @@ async function requestForUrl(url) {
 }
 class Allmanga {
   metadata = {
-    version: "1.15",
+    version: "1.17",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
@@ -339,7 +341,8 @@ class Allmanga {
     "HASH_DATA": HASH_DATA
   };
   async extractPlayerData(type, episode, id) {
-    let variables = `{"showId":"${id}","translationType":"${type}","episodeString":"${episode}"}`;
+    let tmpEpisode = typeof episode == "object" ? episode["ep"] : episode;
+    let variables = `{"showId":"${id}","translationType":"${type}","episodeString":"${tmpEpisode}"}`;
     try {
       const resp = await requestToApi(variables, HASH_PLAYER, header);
       if (!resp.success || !resp.json) return [];
@@ -425,6 +428,7 @@ class Allmanga {
   }
 }
 export {
+  dateToUnix,
   Allmanga as default,
   extractEpisodes,
   extractInformation

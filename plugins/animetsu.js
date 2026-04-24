@@ -2,8 +2,20 @@ import { request, t, makeSmallText } from "./index.js";
 const BACKEND = "https://animetsu.live/v2";
 const WEBSITE = "https://animetsu.live/";
 const HEADER = {
-  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
-  "Referer": WEBSITE
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "accept": "application/json, text/plain, */*",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "accept-language": "en-US,en;q=0.9",
+  "cache-control": "no-cache",
+  "pragma": "no-cache",
+  "priority": "u=1, i",
+  "referer": WEBSITE,
+  "sec-ch-ua": `"Chromium";v="147", "Not.A/Brand";v="8"`,
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": `"Linux"`,
+  "sec-fetch-dest": "empty",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-site": "same-origin"
 };
 function preaperURL(str) {
   if (!str) return str;
@@ -63,11 +75,11 @@ function SheepFinderAnime2000(animeList, anime) {
 async function extractResolutions(episode, type, playerData2, server) {
   try {
     if (!server) return void 0;
-    let response = await request(preaperURL(`${BACKEND}/api/anime/oppai/${server}/${episode}?server=default&source_type=${type}`), { headers: HEADER });
+    let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/oppai/${server}/${episode}?server=${playerData2["hostname"]}&source_type=${type}`), { headers: HEADER });
     if (!response.success || !response.json || response.text == "{}") return void 0;
     let subtitles = [];
-    if (response.json["subtitles"]) {
-      subtitles = response.json["subtitles"].map((element) => {
+    if (response.json["subs"]) {
+      subtitles = response.json["subs"].map((element) => {
         const parts = element["url"].split(".");
         const lastPart = parts.pop();
         return { url: element["url"], lang: "en", label: element["lang"], format: lastPart };
@@ -75,7 +87,7 @@ async function extractResolutions(episode, type, playerData2, server) {
     }
     let resolutions = response.json["sources"].map((element) => ({
       res: element["quality"],
-      url: `https://ani.metsu.site/proxy${element["url"]}`,
+      url: element["need_proxy"] ? `${window["animetsuBackend"]["proxy"]}${element["url"]}` : element["url"],
       defaultSubtitles: subtitles.length > 0,
       hls: true,
       reqHeader: {
@@ -98,11 +110,23 @@ async function extractResolutions(episode, type, playerData2, server) {
     return void 0;
   }
 }
+const payload = `
+var window = { location: { origin: "${WEBSITE}", hostname: "" } };
+globalThis.window = window;
+var localStorage = {
+    removeItem: (str) => {}
+}
+`;
+function dateToUnix(dateStr) {
+  if (!dateStr) return void 0;
+  const date = new Date(dateStr);
+  return Math.floor(date.getTime() / 1e3);
+}
 class Animetsu {
   metadata = {
-    version: "1.8",
+    version: "1.9",
     name: "Animetsu.Live",
-    icon: "https://animetsu.live/apple-touch-icon.png",
+    icon: `${WEBSITE}/android-chrome-192x192.png`,
     author: "Owca525",
     supportLang: ["en"],
     urlWebsite: WEBSITE
@@ -110,22 +134,39 @@ class Animetsu {
   // config: { [key: string]: any; } = {
   //     Backend: BACKEND
   // };
-  // checkBackend = async () => {
-  //     const response = await request(`${WEBSITE}assets/index.js?ex`)
-  //     if (!response.success) return
-  //     const tmp = response.text.match(/https:\/\/([^.]+)\.\$\{window\?\.\location\?\.\hostname\}/)
-  //     if (!tmp) return
-  //     const url = `${tmp[0].replaceAll("${window?.location?.hostname}", new URL(WEBSITE).hostname)}/`
-  //     if (!url.startsWith("https://")) return
-  //     if (url != this.config.Backend) {
-  //     }
-  // }
-  // constructor() {
-  //     this.checkBackend()
-  // }
+  checkBackend = async () => {
+    const response = await request();
+    if (!response["success"]) return;
+    const script = response["text"].match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
+    if (!script) return;
+    const blob = new Blob([payload + script[1] + "self.postMessage({ proxy: window.p })"], { type: "text/javascript" });
+    const url = URL.createObjectURL(blob);
+    const worker = new Worker(url);
+    worker.onmessage = (event) => {
+      console.log(event["data"]);
+      if (event["data"]["api"] && event["data"]["proxy"]) window.animetsuBackend = {
+        ...event["data"],
+        api: BACKEND
+      };
+      console.log(window.animetsuBackend);
+      worker.terminate();
+    };
+    worker.onerror = (event) => {
+      console.error("Failed Fetch Backend", event, script);
+      worker.terminate();
+    };
+  };
+  constructor() {
+    window.animetsuBackend = {
+      proxy: "https://mega-cloud.top/proxy",
+      api: BACKEND
+    };
+    this.checkBackend();
+  }
   extractPlayerData = async (_type, episode, id) => {
     try {
-      let response = await request(preaperURL(`${BACKEND}/api/anime/servers/${id}/${episode}`), { headers: HEADER });
+      let tmpEpisode = typeof episode == "object" ? episode["ep"] : episode;
+      let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/servers/${id}/${tmpEpisode}`), { headers: HEADER });
       if (!response.success || !response.json) {
         console.warn("extractPlayerData/Animetsu request failed", response);
         return [];
@@ -149,30 +190,30 @@ class Animetsu {
   };
   extractEpisodeList = async (animeData, anime_id) => {
     try {
+      console.log(animeData, anime_id);
       let animeID = anime_id;
       if (animeData && !anime_id) {
         const results = await this.searchAnime(animeData.title.romaji, 0);
         animeID = SheepFinderAnime2000(results.map((v) => v.AnimeData), animeData);
       }
       if (!animeID) return;
-      let response = await request(preaperURL(`${BACKEND}/api/anime/eps/${animeID}`), { headers: HEADER });
+      let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/eps/${animeID}`), { headers: HEADER });
       if (!response.success || !response.json) {
         console.warn("extractEpisodeList/Animetsu request failed", response);
         return;
       }
-      let episodes = response.json.map((element) => {
-        return {
-          ep: element["ep_num"],
-          img: `https://ani.metsu.site/proxy${element["img"]}`,
-          title: element["name"]
-        };
-      });
+      let episodes = response.json.map((element) => ({
+        ep: element["ep_num"],
+        img: `${window["animetsuBackend"]["proxy"]}${element["img"]}`,
+        title: element["name"],
+        uploadedUnix: dateToUnix(element["aired_at"])
+      }));
       return {
         player_id: animeID,
         episodesData: [{
           episodes,
           type: "sub",
-          name: `${t("information.types.sub")}/${t("information.types.dub")}`
+          name: window["animuAppInfo"] ? "information.types.sub" : `${t("information.types.sub")}/${t("information.types.dub")}`
         }]
       };
     } catch (error) {
@@ -186,7 +227,7 @@ class Animetsu {
     return data.episodesData[0].episodes;
   };
   searchAnime = async (name, _page, _params) => {
-    let response = await request(preaperURL(`${BACKEND}/api/anime/search/?query=${name}`), { headers: HEADER });
+    let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/search/?query=${name}`));
     if (!response.success || !response.json) return [];
     let data = [];
     for (let index = 0; index < response.json.results.length; index++) {
@@ -217,5 +258,6 @@ class Animetsu {
   };
 }
 export {
+  dateToUnix,
   Animetsu as default
 };

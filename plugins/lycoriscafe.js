@@ -1,8 +1,5 @@
 import { request, makeSmallText } from "./index.js";
 const WEB = "https://www.lycoris.cafe";
-const HEADER = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
-};
 function timeToSeconds(time) {
   const [hms] = time.split(".");
   const parts = hms.split(":").map(Number);
@@ -88,9 +85,13 @@ function convertToAnimeData(data) {
     return void 0;
   }
 }
+function dateToUnix(dateStr) {
+  if (!dateStr) return void 0;
+  const date = new Date(dateStr);
+  return Math.floor(date.getTime() / 1e3);
+}
 async function requestToApi(anime_id) {
-  let url = `${WEB}/api/anime/${anime_id}`;
-  let req = await request(url, { headers: HEADER });
+  let req = await request();
   if (!req.success) {
     console.error("Failed Request requestToApi/lycorisCafe", anime_id, req);
     return void 0;
@@ -99,7 +100,7 @@ async function requestToApi(anime_id) {
 }
 class LycorisCafe {
   metadata = {
-    version: "1.5",
+    version: "1.6",
     name: "Lycoris.cafe",
     author: "Owca525",
     icon: "https://www.lycoris.cafe/favicon.ico",
@@ -107,15 +108,16 @@ class LycorisCafe {
     supportLang: ["pl"]
   };
   extractPlayerData = async (_type, episode, id) => {
+    let mainEpisode = typeof episode == "object" ? episode.ep : episode;
     let req = await requestToApi(id);
     if (!req) return [];
     let episodes = req.data.anime["episodes"];
     let currentEpisode = [];
     let subtitles = [];
     let chapters = [];
-    let tmp = episodes.find((element) => parseInt(element.number) == parseInt(episode));
+    let tmp = episodes.find((element) => parseInt(element.number) == parseInt(mainEpisode));
     if (!tmp) return [];
-    let reqID = await request(`${WEB}/api/watch/getVideoLink?id=${tmp.id}`, { headers: HEADER });
+    let reqID = await request(`${WEB}/api/watch/getVideoLink?id=${tmp.id}`);
     if (!reqID.success) return [];
     let decodeData = reqID.text.slice(0, -2);
     decodeData = decodeData.split("").reverse().map((el) => String.fromCharCode(el.charCodeAt(0) - 7)).join("");
@@ -171,7 +173,8 @@ class LycorisCafe {
       return {
         ep: ep["number"],
         img: ep["thumbnail"],
-        title: ep["title"]
+        title: ep["title"],
+        uploadedUnix: dateToUnix(ep["airDate"])
       };
     });
     return {
@@ -187,14 +190,14 @@ class LycorisCafe {
       return {
         ep: ep["number"],
         img: ep["thumbnail"],
-        title: ep["title"]
+        title: ep["title"],
+        uploadedUnix: dateToUnix(ep["airDate"])
       };
     });
     return episodes;
   };
   searchAnime = async (name, page, _params) => {
-    let url = `${WEB}/api/search?page=${page}&pageSize=12&search=${name}&genres=&status=&format=&year=&season=&source=&sortField=popularity&sortDirection=desc&preferRomaji=true`;
-    const req = await request(url, { headers: HEADER });
+    const req = await request();
     if (!req.success || !req.json) {
       console.warn("Failed Request searchAnime/LycorisCafe", req);
       return [];
@@ -207,5 +210,6 @@ class LycorisCafe {
   };
 }
 export {
+  dateToUnix,
   LycorisCafe as default
 };

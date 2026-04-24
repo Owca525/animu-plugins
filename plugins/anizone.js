@@ -39,15 +39,15 @@ async function searchAnime(name) {
 }
 class Anizone {
   metadata = {
-    version: "1.1",
+    version: "1.2",
     name: "AniZone",
     author: "Owca525",
     supportLang: ["en", "pl", "de"],
     urlWebsite: WEB
   };
   extractPlayerData = async (_type, episode, id) => {
-    let url = `${WEB}/anime/${id}/${episode}`;
-    const req = await request(url, { headers: HEADER });
+    typeof episode == "object" ? episode.ep : episode;
+    const req = await request();
     if (!req.success) return [];
     let data = req.text;
     let storyboard = [...data.matchAll(/https:\/\/seiryuu\.vid-cdn\.xyz\/[a-z0-9-]+\/storyboard\.vtt/gi)];
