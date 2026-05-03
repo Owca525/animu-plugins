@@ -1,4 +1,4 @@
-import { request, makeSmallText } from "./index.js";
+import { makeSmallText, request } from "./index.js";
 const WEBSITE = "https://animepahe.pw";
 const header = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
@@ -101,7 +101,7 @@ class Hls {
 }
 `;
 async function extractResolution(url) {
-  const htmlResponse = await request();
+  const htmlResponse = await request(url, { headers: header });
   if (!htmlResponse["success"]) return;
   const scripts = Array.from(
     htmlResponse["text"].matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)
@@ -123,11 +123,13 @@ async function extractResolution(url) {
 }
 class AnimePahe {
   metadata = {
-    version: "1.1",
+    version: "1.2",
     name: "AnimePahe",
     author: "Owca525",
     supportLang: ["en"],
-    urlWebsite: WEBSITE
+    urlWebsite: WEBSITE,
+    type: "player",
+    icon: `${WEBSITE}/favicon-96x96.png`
   };
   cache = [];
   extractPlayerData = async (_type, episode, id) => {
@@ -136,8 +138,8 @@ class AnimePahe {
     let mainEpisode = typeof episode == "object" ? episode.ep : episode;
     const find = this.cache[id][parseInt(mainEpisode) - 1];
     if (!find) return [];
-    find["session"];
-    const htmlResponse = await request();
+    const episodeID = find["session"];
+    const htmlResponse = await request(`${WEBSITE}/play/${id}/${episodeID}`, { headers: header });
     if (!htmlResponse["success"]) return [];
     const tagRegex = /<[^>]*data-src=["'][^"']+["'][^>]*>/g;
     let match;
@@ -226,7 +228,7 @@ class AnimePahe {
       anime_id = SheepFinderAnime2000(search.map((v) => v.AnimeData), animeData);
     }
     if (!anime_id) return;
-    const episodeResponse = await request();
+    const episodeResponse = await request(`${WEBSITE}/api?m=release&id=${anime_id}&sort=episode_asc&page=1`, { headers: header });
     if (!episodeResponse["success"] || !episodeResponse["json"]) return;
     this.cache = {
       ...this.cache,

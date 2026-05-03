@@ -1,5 +1,17 @@
-import { request, makeSmallText } from "./index.js";
+import { makeSmallText, request } from "./index.js";
 const WEB = "https://www.lycoris.cafe";
+const HEADER = {
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0",
+  Accept: "*/*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br, zstd",
+  "Sec-GPC": "1",
+  Connection: "keep-alive",
+  Referer: WEB,
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "cross-site"
+};
 function timeToSeconds(time) {
   const [hms] = time.split(".");
   const parts = hms.split(":").map(Number);
@@ -91,21 +103,42 @@ function dateToUnix(dateStr) {
   return Math.floor(date.getTime() / 1e3);
 }
 async function requestToApi(anime_id) {
-  let req = await request();
+  let url = `${WEB}/api/anime/${anime_id}`;
+  let req = await request(url, { headers: HEADER });
   if (!req.success) {
     console.error("Failed Request requestToApi/lycorisCafe", anime_id, req);
     return void 0;
   }
   return { data: req.json };
 }
+async function otherExtractor(id) {
+  try {
+    let reqID = await request(`${WEB}/api/watch/getRumbleVideoLink?id=${id}`, { headers: HEADER });
+    if (!reqID["success"] || !reqID["json"]) return [];
+    return [{
+      hostname: "lycoris.cafe",
+      splitHLS: true,
+      resolution: Object.entries(reqID["json"]["allQualities"]).map(([res, data]) => ({
+        res,
+        url: data["url"],
+        reqHeader: HEADER,
+        hls: true
+      })).reverse()
+    }];
+  } catch (error) {
+    console.error("Error otherExtractor Lycoris Cafe", error);
+    return [];
+  }
+}
 class LycorisCafe {
   metadata = {
-    version: "1.6",
+    version: "1.7",
     name: "Lycoris.cafe",
     author: "Owca525",
-    icon: "https://www.lycoris.cafe/favicon.ico",
+    icon: `${WEB}/favicon.ico`,
     urlWebsite: WEB,
-    supportLang: ["pl"]
+    supportLang: ["pl"],
+    type: "player"
   };
   extractPlayerData = async (_type, episode, id) => {
     let mainEpisode = typeof episode == "object" ? episode.ep : episode;
@@ -117,8 +150,8 @@ class LycorisCafe {
     let chapters = [];
     let tmp = episodes.find((element) => parseInt(element.number) == parseInt(mainEpisode));
     if (!tmp) return [];
-    let reqID = await request(`${WEB}/api/watch/getVideoLink?id=${tmp.id}`);
-    if (!reqID.success) return [];
+    let reqID = await request(`${WEB}/api/watch/getVideoLink?id=${tmp.id}`, { headers: HEADER });
+    if (!reqID.success) return await otherExtractor(tmp.id);
     let decodeData = reqID.text.slice(0, -2);
     decodeData = decodeData.split("").reverse().map((el) => String.fromCharCode(el.charCodeAt(0) - 7)).join("");
     try {
@@ -197,7 +230,8 @@ class LycorisCafe {
     return episodes;
   };
   searchAnime = async (name, page, _params) => {
-    const req = await request();
+    let url = `${WEB}/api/search?page=${page}&pageSize=12&search=${name}&genres=&status=&format=&year=&season=&source=&sortField=popularity&sortDirection=desc&preferRomaji=true`;
+    const req = await request(url, { headers: HEADER });
     if (!req.success || !req.json) {
       console.warn("Failed Request searchAnime/LycorisCafe", req);
       return [];

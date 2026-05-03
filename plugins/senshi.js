@@ -1,4 +1,4 @@
-import { request, makeSmallText } from "./index.js";
+import { makeSmallText, request } from "./index.js";
 const WEBSITE = "https://senshi.live";
 const header = {
   "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
@@ -81,17 +81,18 @@ function converterToCardData(data) {
 }
 class Senshi {
   metadata = {
-    version: "1.0",
+    version: "1.1",
     name: "Senshi",
     author: "Owca525",
     supportLang: ["en"],
     urlWebsite: WEBSITE,
-    icon: "https://senshi.live/assets/Senshi_Logo_3-Dm8yKkWF.png"
+    icon: "https://senshi.live/assets/Senshi_Logo_3-Dm8yKkWF.png",
+    type: "player"
   };
   cache = [];
   extractPlayerData = async (_type, episode, id) => {
     let mainEpisode = typeof episode == "object" ? episode.ep : episode;
-    const urlsResp = await request();
+    const urlsResp = await request(`${WEBSITE}/episode-embeds/${id}/${mainEpisode}`, { headers: header });
     if (!urlsResp["success"] || !urlsResp["json"]) return [];
     const sub = urlsResp["json"].find((v) => v["status"] == "HardSub");
     const dub = urlsResp["json"].find((v) => v["status"] == "Dub");
@@ -137,7 +138,7 @@ class Senshi {
       anime_id = SheepFinderAnime2000(search.map((v) => v["AnimeData"]), animeData);
     }
     if (!anime_id) return;
-    const episodeResp = await request();
+    const episodeResp = await request(`${WEBSITE}/episodes/${anime_id}`, { headers: header });
     if (!episodeResp["success"] || !episodeResp["json"]) return;
     this.cache = [
       ...this.cache,

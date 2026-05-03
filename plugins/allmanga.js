@@ -1,4 +1,4 @@
-import { request, makeSmallText, convertMsToMinutes } from "./index.js";
+import { convertMsToMinutes, makeSmallText, request } from "./index.js";
 const HASH_SEARCH = "a24c500a1b765c68ae1d8dd85174931f661c71369c89b92b88b75a725afc471c";
 const HASH_INFO = "043448386c7a686bc2aabfbb6b80f6074e795d350df48015023b079527b0848a";
 const HASH_PLAYER = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c00fec";
@@ -156,7 +156,7 @@ function converterData(data) {
 }
 async function requestToApi(variables, hash, header2) {
   let url = `${API_WEB}/api?variables=${variables}&extensions={"persistedQuery":{"version":1,"sha256Hash":"${hash}"}}`;
-  let data = await request();
+  let data = await request(url, { headers: header2 });
   if (!data.success || data.json && data.json["error"]) console.error("Allmanga request", data, url, header2);
   return data;
 }
@@ -310,7 +310,11 @@ async function extractInformation(id) {
 }
 async function requestForUrl(url) {
   if (url.startsWith("https")) return void 0;
-  const links = await request(`http://allanime.day${url.replace("clock", "clock.json")}`);
+  const links = await request(`http://allanime.day${url.replace("clock", "clock.json")}`, {
+    headers: {
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
+    }
+  });
   if (!links.success || !links.json) return void 0;
   let listUrls;
   links.json.links.forEach((element) => {
@@ -326,12 +330,13 @@ async function requestForUrl(url) {
 }
 class Allmanga {
   metadata = {
-    version: "1.17",
+    version: "1.18",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
     supportLang: ["en"],
-    urlWebsite: "https://allmanga.to"
+    urlWebsite: "https://allmanga.to",
+    type: "player"
   };
   config = {
     "settings.extensions.website": API_WEB,
@@ -387,8 +392,7 @@ class Allmanga {
           resolution: [{
             res: main["vidResolution"].toString(),
             url: `https://aln.youtube-anime.com${main["vidPath"]}`,
-            hls: false,
-            doNotUseBackend: true
+            hls: false
           }]
         });
       }

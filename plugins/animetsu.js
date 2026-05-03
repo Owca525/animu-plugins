@@ -1,4 +1,5 @@
-import { request, t, makeSmallText } from "./index.js";
+import { makeSmallText, request } from "./index.js";
+import { t } from "./index.js";
 const BACKEND = "https://animetsu.live/v2";
 const WEBSITE = "https://animetsu.live/";
 const HEADER = {
@@ -124,18 +125,21 @@ function dateToUnix(dateStr) {
 }
 class Animetsu {
   metadata = {
-    version: "1.9",
+    version: "2.0",
     name: "Animetsu.Live",
     icon: `${WEBSITE}/android-chrome-192x192.png`,
     author: "Owca525",
     supportLang: ["en"],
-    urlWebsite: WEBSITE
+    urlWebsite: WEBSITE,
+    type: "player"
   };
   // config: { [key: string]: any; } = {
   //     Backend: BACKEND
   // };
   checkBackend = async () => {
-    const response = await request();
+    const response = await request(WEBSITE, {
+      headers: HEADER
+    });
     if (!response["success"]) return;
     const script = response["text"].match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
     if (!script) return;
@@ -227,7 +231,7 @@ class Animetsu {
     return data.episodesData[0].episodes;
   };
   searchAnime = async (name, _page, _params) => {
-    let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/search/?query=${name}`));
+    let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/search/?query=${name}`), { headers: HEADER });
     if (!response.success || !response.json) return [];
     let data = [];
     for (let index = 0; index < response.json.results.length; index++) {

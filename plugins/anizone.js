@@ -1,4 +1,4 @@
-import { request, convertChaptersVTT, convertText } from "./index.js";
+import { convertChaptersVTT, convertText, request } from "./index.js";
 const WEB = "https://anizone.to";
 const CARDS_REGEX = /<div[^>]*class=["']grid grid-cols-1 2xl:grid-cols-2 gap-4["'][^>]*>(.*?)<\/div>/gs;
 const HEADER = {
@@ -39,15 +39,17 @@ async function searchAnime(name) {
 }
 class Anizone {
   metadata = {
-    version: "1.2",
+    version: "1.3",
     name: "AniZone",
     author: "Owca525",
     supportLang: ["en", "pl", "de"],
-    urlWebsite: WEB
+    urlWebsite: WEB,
+    type: "player"
   };
   extractPlayerData = async (_type, episode, id) => {
-    typeof episode == "object" ? episode.ep : episode;
-    const req = await request();
+    let mainEpisode = typeof episode == "object" ? episode.ep : episode;
+    let url = `${WEB}/anime/${id}/${mainEpisode}`;
+    const req = await request(url, { headers: HEADER });
     if (!req.success) return [];
     let data = req.text;
     let storyboard = [...data.matchAll(/https:\/\/seiryuu\.vid-cdn\.xyz\/[a-z0-9-]+\/storyboard\.vtt/gi)];

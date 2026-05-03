@@ -13,59 +13,59 @@
         "name": "Allmanga",
         "file": "/plugins/allmanga.js",
         "type": "player",
-        "ver": "1.17",
+        "ver": "1.18",
         "author": "Owca525",
         "urlWebsite": "https://allmanga.to",
         "icon": "https://allmanga.to/android-icon-192x192.png",
-        "sha256": "678a300ec22936562731d21c7e4e046082e34b92e97c5854dbbb920a2ae329b7"
+        "sha256": "afb4a05fd76c398c37bfacc12d5752b1f4d77e24c92ab7b4bdd084ef104b6a90"
     },
     {
         "name": "AniZone",
         "file": "/plugins/anizone.js",
         "type": "player",
-        "ver": "1.2",
+        "ver": "1.3",
         "author": "Owca525",
         "urlWebsite": "https://anizone.to",
-        "sha256": "501eb2a2668cd3847c9494970ff1549f7194956de50bcf9f3aa047bf9eab8eb6"
+        "sha256": "f79d6c0ddfe5bd4a85623f2dd2fbed40b49a6f527bf230dc2ac3451add32371a"
     },
     {
         "name": "Lycoris.cafe",
         "file": "/plugins/lycoriscafe.js",
         "type": "player",
-        "ver": "1.6",
+        "ver": "1.7",
         "author": "Owca525",
         "urlWebsite": "https://www.lycoris.cafe",
         "icon": "https://www.lycoris.cafe/favicon.ico",
-        "sha256": "6af6d80209b4b6e372ca041fba89ebb044c853c3d2dc53134dfdce3a1bfbb129"
+        "sha256": "6263a1967e7e21b0e0407848028589b167cadc454613e4a8981a07f7a0259426"
     },
     {
         "name": "Animetsu.Live",
         "file": "/plugins/animetsu.js",
         "type": "player",
-        "ver": "1.9",
+        "ver": "2.0",
         "author": "Owca525",
         "urlWebsite": "https://animetsu.live/",
         "icon": "https://animetsu.live/apple-touch-icon.png",
-        "sha256": "b06567eb6632809a8dc8d03ca7a0ce55af8257190f8e4f20ee84cb50d3b2eb06"
+        "sha256": "e9f78c8bf1f51a2efe2f1a9c360bf2b9e98a04d7fa3da9676e49851ecd216bf9"
     },
     {
         "name": "AnimePahe",
         "file": "/plugins/animepahe.js",
         "type": "player",
-        "ver": "1.1",
+        "ver": "1.2",
         "author": "Owca525",
         "urlWebsite": "https://animepahe.pw/",
         "icon": "https://animepahe.pw/favicon-96x96.png",
-        "sha256": "48130fe3cc214f3c6f34d1cf7ab825bc74e1479085b7d64754dc0974865e0019"
+        "sha256": "540502cc92fdc1370b78e91066d9f1c5dc687d632d09133ed06cdea0c2d92668"
     },
     {
         "name": "Senshi",
         "file": "/plugins/senshi.js",
         "type": "player",
-        "ver": "1.0",
+        "ver": "1.1",
         "author": "Owca525",
         "urlWebsite": "https://senshi.live",
         "icon": "https://senshi.live/assets/Senshi_Logo_3-Dm8yKkWF.png",
-        "sha256": "4db2054ba12c28d2b9c528db0b46e9f5b7e5cd97f7c6a76a074260a558d946fe"
+        "sha256": "b723a6d13aed56139017e3939a75097e6d23a630b572e9292c96c76c97165a4d"
     }
 ]
