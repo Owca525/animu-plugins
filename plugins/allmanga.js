@@ -5,11 +5,20 @@ const HASH_PLAYER = "d405d0edd690624b66baba3068e0edc3ac90f1597d898a1ec8db4e5c43c
 const HASH_DATA = "c8f3ac51f598e630a1d09d7f7fb6924cff23277f354a23e473b962a367880f7d";
 const API_WEB = "https://api.allanime.day";
 const header = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0",
+  Accept: "*/*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br, zstd",
+  "Sec-GPC": "1",
+  Connection: "keep-alive",
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "cross-site",
   "Referer": "https://allmanga.to/",
   "Origin": "https://allmanga.to/"
 };
-const source_names = ["Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Mp4", "Yt-mp4"];
+const source_names = ["Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Uni", "Yt-mp4"];
+const normalUrls = ["Uni"];
 const mapping = {
   "79": "A",
   "7a": "B",
@@ -99,6 +108,7 @@ const mapping = {
 function findUrl(url, sourceName) {
   for (let index = 0; index < source_names.length; index++) {
     const element = source_names[index];
+    if (element.toLowerCase() == sourceName.toLowerCase() && normalUrls.includes(element)) return { url, decode: false, source: sourceName };
     if (element.toLowerCase() == sourceName.toLowerCase()) {
       let tmpUrl = decodeText(url);
       return { url: tmpUrl, decode: !tmpUrl.startsWith("https://"), source: sourceName };
@@ -191,6 +201,22 @@ async function fuckThisEncryptionMethod(encryptedMotherFucker) {
     iv: randomSlicedBufferCum
   }, cumKey, O);
   return JSON.parse(new TextDecoder().decode(decryptedCum));
+}
+async function allAnimeDecyrption(encrypted) {
+  try {
+    const encodedKey = new TextEncoder().encode("kiemtienmua911ca");
+    const cumKey = await crypto.subtle.importKey("raw", encodedKey, {
+      name: "AES-CBC"
+    }, true, ["decrypt"]);
+    const decryptedCum = await crypto.subtle.decrypt({
+      name: "AES-CBC",
+      iv: new TextEncoder().encode("1234567890oiuytr")
+    }, cumKey, new Uint8Array(encrypted.match(/[\da-f]{2}/gi).map((P) => parseInt(P, 16))));
+    return JSON.parse(new TextDecoder().decode(decryptedCum));
+  } catch (error) {
+    console.error("Failed Decrypt Allanime Format Report This to Main Developer", error, encrypted);
+    return;
+  }
 }
 function dateToUnix(dateStr) {
   if (!dateStr) return void 0;
@@ -328,9 +354,49 @@ async function requestForUrl(url) {
   });
   return listUrls;
 }
+async function fetchUrls(params) {
+  const urlObject = new URL(params.url);
+  if (params["source"] == "Uni") {
+    const response = await request(`${urlObject["origin"]}/api/v1/video?id=${urlObject["hash"].replace("#", "")}&w=1920&h=1080&r=`, {
+      headers: {
+        ...header,
+        "Referer": urlObject["origin"],
+        "Origin": urlObject["origin"]
+      }
+    });
+    if (!response["success"]) return;
+    const code = await allAnimeDecyrption(response["text"]);
+    if (!code) return;
+    return {
+      hostname: urlObject.hostname,
+      storyboardVTT: `${urlObject["origin"]}${code["thumbnail"]}`,
+      resolution: [{
+        res: "hls",
+        url: `${urlObject["origin"]}${code["hlsVideoTiktok"]}`,
+        reqHeader: header,
+        hls: code["hlsVideoTiktok"].includes("hls")
+      }]
+    };
+  }
+  console.warn("NOT SUPPORTED WEBSITE", params);
+  return;
+}
+async function detectURL(params) {
+  if (params["source"] == "Uni") return await fetchUrls(params);
+  const urlObject = new URL(params.url);
+  return {
+    hostname: urlObject.hostname,
+    resolution: [{
+      res: "1080",
+      url: params.url,
+      reqHeader: header
+    }]
+    // extractResolution: async () => await fetchMP4(urlObject.hostname, element.url)
+  };
+}
 class Allmanga {
   metadata = {
-    version: "1.18",
+    version: "1.19",
     name: "Allmanga",
     author: "Owca525",
     icon: "https://allmanga.to/android-icon-192x192.png",
@@ -372,16 +438,11 @@ class Allmanga {
           });
         }
         if (!element.decode) {
-          const urlObject = new URL(element.url);
+          const tmp = await detectURL(element);
+          if (!tmp) continue;
           data.push({
-            hostname: urlObject.hostname,
-            defaultHost: updatedItems.find((item) => item["sourceName"] == element.source ? item["active"] : false),
-            resolution: [{
-              res: "1080",
-              url: element.url,
-              reqHeader: header
-            }]
-            // extractResolution: async () => await fetchMP4(urlObject.hostname, element.url)
+            ...tmp,
+            defaultHost: updatedItems.find((item) => item["sourceName"] == element.source ? item["active"] : false)
           });
         }
       }
@@ -430,6 +491,44 @@ class Allmanga {
     let resp = await SearchAnimeInAllmanga(name.replaceAll('"', "").replaceAll("&", ""), page);
     return resp.map((card) => ({ AnimeData: card }));
   }
+  raportStatus = async () => {
+    let results = [];
+    async function wrapper(func) {
+      try {
+        const start = performance.now();
+        const response = await func();
+        const end = performance.now();
+        return {
+          time: end - start,
+          work: response.length > 0
+        };
+      } catch (error) {
+        return void 0;
+      }
+    }
+    const functions = [
+      async () => this.searchAnime("Oshi No Ko", 1),
+      async () => this.extractPlayerData("sub", { ep: "1" }, "b3u5TprKSKHBPBcor"),
+      async () => this.extractOnlyEpisodesList("sub", "b3u5TprKSKHBPBcor")
+    ];
+    for (let index = 0; index < functions.length; index++) {
+      const element = functions[index];
+      const tmp = await wrapper(element);
+      if (!tmp) {
+        results.push({
+          time: 0,
+          work: false
+        });
+      } else {
+        results.push(tmp);
+      }
+    }
+    return {
+      search: results[0],
+      player: results[1],
+      episodes: results[2]
+    };
+  };
 }
 export {
   dateToUnix,
