@@ -18,6 +18,23 @@ const HEADER = {
   "sec-fetch-mode": "cors",
   "sec-fetch-site": "same-origin"
 };
+const playerHeader = {
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+  Accept: "*/*",
+  "Accept-Language": "en-US,en;q=0.9",
+  "Accept-Encoding": "gzip, deflate, br, zstd",
+  Origin: WEBSITE,
+  Referer: WEBSITE,
+  "Sec-Fetch-Dest": "empty",
+  "Sec-Fetch-Mode": "cors",
+  "Sec-Fetch-Site": "cross-site",
+  "cache-control": "no-cache",
+  "pragma": "no-cache",
+  "priority": "u=1, i",
+  "sec-ch-ua": `"Not/A)Brand";v="99", "Chromium";v="148"`,
+  "sec-ch-ua-mobile": "?0",
+  "sec-ch-ua-platform": `"Linux"`
+};
 function preaperURL(str) {
   if (!str) return str;
   return str.replaceAll("//", "/").replace("https:/", "https://");
@@ -91,9 +108,7 @@ async function extractResolutions(episode, type, playerData2, server) {
       url: element["need_proxy"] ? `${window["animetsuBackend"]["proxy"]}${element["url"]}` : element["url"],
       defaultSubtitles: subtitles.length > 0,
       hls: true,
-      reqHeader: {
-        ...HEADER
-      }
+      reqHeader: playerHeader
     }));
     let chapters = response.json["skips"] ? [
       { start: response.json["skips"]["intro"]["start"], end: response.json["skips"]["intro"]["end"], type: "opening" },
@@ -125,7 +140,7 @@ function dateToUnix(dateStr) {
 }
 class Animetsu {
   metadata = {
-    version: "2.0",
+    version: "2.2",
     name: "Animetsu.Live",
     icon: `${WEBSITE}/android-chrome-192x192.png`,
     author: "Owca525",
@@ -147,12 +162,10 @@ class Animetsu {
     const url = URL.createObjectURL(blob);
     const worker = new Worker(url);
     worker.onmessage = (event) => {
-      console.log(event["data"]);
-      if (event["data"]["api"] && event["data"]["proxy"]) window.animetsuBackend = {
+      if (event["data"]["proxy"]) window.animetsuBackend = {
         ...event["data"],
         api: BACKEND
       };
-      console.log(window.animetsuBackend);
       worker.terminate();
     };
     worker.onerror = (event) => {
@@ -259,6 +272,44 @@ class Animetsu {
       });
     }
     return data;
+  };
+  raportStatus = async () => {
+    let results = [];
+    async function wrapper(func) {
+      try {
+        const start = performance.now();
+        const response = await func();
+        const end = performance.now();
+        return {
+          time: end - start,
+          work: response.length > 0
+        };
+      } catch (error) {
+        return void 0;
+      }
+    }
+    const functions = [
+      async () => this.searchAnime("Oshi No Ko", 1),
+      async () => this.extractPlayerData("sub", { ep: "1" }, "6989bcf829cf95f4eb03eb2e"),
+      async () => this.extractOnlyEpisodesList("sub", "6989bcf829cf95f4eb03eb2e")
+    ];
+    for (let index = 0; index < functions.length; index++) {
+      const element = functions[index];
+      const tmp = await wrapper(element);
+      if (!tmp) {
+        results.push({
+          time: 0,
+          work: false
+        });
+      } else {
+        results.push(tmp);
+      }
+    }
+    return {
+      search: results[0],
+      player: results[1],
+      episodes: results[2]
+    };
   };
 }
 export {

@@ -13,11 +13,11 @@
         "name": "Allmanga",
         "file": "/plugins/allmanga.js",
         "type": "player",
-        "ver": "1.19",
+        "ver": "2.0",
         "author": "Owca525",
         "urlWebsite": "https://allmanga.to",
         "icon": "https://allmanga.to/android-icon-192x192.png",
-        "sha256": "cf514fc878fd35e8b7df3b3d9b6f0c677ffe40bbeea8f2ff65ca0ec1adb6a974"
+        "sha256": "941ddc610f64e15e681ea8a449cbed06a29d465e5945ff4366421523b37c29bb"
     },
     {
         "name": "AniZone",
@@ -42,11 +42,11 @@
         "name": "Animetsu.Live",
         "file": "/plugins/animetsu.js",
         "type": "player",
-        "ver": "2.0",
+        "ver": "2.2",
         "author": "Owca525",
         "urlWebsite": "https://animetsu.live/",
         "icon": "https://animetsu.live/apple-touch-icon.png",
-        "sha256": "e9f78c8bf1f51a2efe2f1a9c360bf2b9e98a04d7fa3da9676e49851ecd216bf9"
+        "sha256": "59393f4b1e754280aaf98337ae27029e2fe3440fc9256d62dc263961c3f11983"
     },
     {
         "name": "AnimePahe",
