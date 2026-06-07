@@ -17,7 +17,7 @@ const header = {
   "Referer": WEBSITE,
   "Origin": WEBSITE
 };
-const source_names = ["Sak", "S-mp4", "Luf-mp4", "Kir", "Default", "Uv-mp4", "Uni", "Yt-mp4"];
+const source_names = ["Sak", "S-mp4", "Luf-Mp4", "Kir", "Default", "Uv-mp4", "Uni", "Yt-mp4", "Ak"];
 const mapping = {
   "79": "A",
   "7a": "B",
@@ -217,12 +217,9 @@ async function requestToClockApi(content) {
   if (!links["success"] || !links["json"]) return void 0;
   let listUrls;
   links["json"]["links"].forEach((element) => {
-    if (!element.src) return;
-    if (element.mp4) {
-      listUrls = { resolution: [{ url: element.src, res: "1080", hls: false }], hostname: content["sourceName"] };
-    } else {
-      listUrls = { resolution: [{ url: element.src, res: "", hls: true }], hostname: content["sourceName"] };
-    }
+    const srcUrl = element.src ? element.src : element.link;
+    if (!srcUrl) return console.error("allmanga/requestToClockApi Unsuported Url", links);
+    listUrls = { resolution: [{ url: srcUrl, res: "1080", hls: element["hls"] ? true : false }], hostname: content["sourceName"] };
   });
   return listUrls;
 }
@@ -244,6 +241,12 @@ async function allAnimeDecyrption(encrypted) {
 }
 async function fetchUrls(params) {
   const urlObject = new URL(params.url);
+  function hasUrl(data) {
+    if ("hlsVideoTiktok" in data) return data["hlsVideoTiktok"];
+    if ("cf" in data) return data["cf"];
+    console.error("Unsuported Url", data);
+    throw new Error(`Failed Find Url`);
+  }
   if (params["sourceName"] == "Uni") {
     const response = await request(`${urlObject["origin"]}/api/v1/video?id=${urlObject["hash"].replace("#", "")}&w=1920&h=1080&r=`, {
       headers: {
@@ -255,12 +258,17 @@ async function fetchUrls(params) {
     if (!response["success"]) return [];
     const code = await allAnimeDecyrption(response["text"]);
     if (!code) return [];
-    return [{
-      res: "hls",
-      url: `${urlObject["origin"]}${code["hlsVideoTiktok"]}`,
-      reqHeader: header,
-      hls: code["hlsVideoTiktok"].includes("hls")
-    }];
+    try {
+      return [{
+        res: "hls",
+        url: `${urlObject["origin"]}${code["hlsVideoTiktok"]}`,
+        reqHeader: header,
+        hls: hasUrl(code).includes("hls")
+      }];
+    } catch (error) {
+      console.error("Allmanga/fetchUrls", error, response);
+      return [];
+    }
   }
   console.warn("NOT SUPPORTED WEBSITE", params);
   return [];
@@ -275,7 +283,7 @@ async function detectURL(params) {
 }
 class Allmanga {
   metadata = {
-    version: "2.0",
+    version: "2.2",
     name: "Allmanga",
     author: "Owca525",
     icon: `${WEBSITE}android-icon-192x192.png`,

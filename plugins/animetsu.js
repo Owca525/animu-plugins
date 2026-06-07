@@ -1,19 +1,18 @@
-import { makeSmallText, request } from "./index.js";
+import { dateToUnix, request, SheepFinderAnime2000 } from "./index.js";
 import { t } from "./index.js";
 const BACKEND = "https://animetsu.live/v2";
 const WEBSITE = "https://animetsu.live/";
 const HEADER = {
-  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:151.0) Gecko/20100101 Firefox/151.0",
   "accept": "application/json, text/plain, */*",
   "accept-encoding": "gzip, deflate, br, zstd",
   "accept-language": "en-US,en;q=0.9",
-  "cache-control": "no-cache",
-  "pragma": "no-cache",
-  "priority": "u=1, i",
+  "Alt-Used": "animetsu.live",
+  "Connection": "keep-alive",
+  "Sec-GPC": "1",
+  "TE": "trailers",
+  "DNT": "1",
   "referer": WEBSITE,
-  "sec-ch-ua": `"Chromium";v="147", "Not.A/Brand";v="8"`,
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": `"Linux"`,
   "sec-fetch-dest": "empty",
   "sec-fetch-mode": "cors",
   "sec-fetch-site": "same-origin"
@@ -35,10 +34,6 @@ const playerHeader = {
   "sec-ch-ua-mobile": "?0",
   "sec-ch-ua-platform": `"Linux"`
 };
-function preaperURL(str) {
-  if (!str) return str;
-  return str.replaceAll("//", "/").replace("https:/", "https://");
-}
 function convertStringToDateObject(date) {
   try {
     if (!date) return void 0;
@@ -49,51 +44,10 @@ function convertStringToDateObject(date) {
     return void 0;
   }
 }
-function SheepFinderAnime2000(animeList, anime) {
-  try {
-    if (anime.id != "") {
-      console.log("ID Check");
-      const findedID = animeList.find((item) => item.id == anime.id);
-      if (findedID) return findedID.player_ID;
-    }
-    console.log("First Check", animeList);
-    if (animeList.length <= 0) return void 0;
-    if (animeList.length == 1) return animeList[0].player_ID;
-    let seasonYearFilter = animeList.filter((element) => element.seasonYear == anime.seasonYear);
-    console.log("Second Check", seasonYearFilter);
-    if (seasonYearFilter.length <= 0) return void 0;
-    if (seasonYearFilter.length == 1) return seasonYearFilter[0].player_ID;
-    let seasonFilter = seasonYearFilter.filter((element) => makeSmallText(element.season) == makeSmallText(anime.season));
-    console.log("Third Check", seasonYearFilter);
-    if (seasonFilter.length <= 0) return void 0;
-    if (seasonFilter.length == 1) return seasonFilter[0].player_ID;
-    let episodesFilter = void 0;
-    if (anime.episodes) {
-      episodesFilter = seasonFilter.filter((element) => element.episodes == anime.episodes);
-      console.log("Four Check", episodesFilter);
-      if (episodesFilter.length <= 0) return void 0;
-      if (episodesFilter.length == 1) return episodesFilter[0].player_ID;
-    }
-    let durationFilter = [];
-    if (episodesFilter) durationFilter = episodesFilter.filter((element) => element.duration == anime.duration);
-    else durationFilter = seasonFilter.filter((element) => element.duration == anime.duration);
-    console.log("Five Check", durationFilter);
-    if (durationFilter.length <= 0) return void 0;
-    if (durationFilter.length == 1) return durationFilter[0].player_ID;
-    let formatFilter = durationFilter.filter((element) => makeSmallText(element.format) == makeSmallText(anime.format));
-    console.log("Six Check", formatFilter);
-    if (formatFilter.length <= 0) return void 0;
-    if (formatFilter.length == 1) return formatFilter[0].player_ID;
-    return formatFilter[0].player_ID;
-  } catch (error) {
-    console.error("Animetsu SheepFinderAnime2000 error", error);
-    return animeList[0].player_ID;
-  }
-}
 async function extractResolutions(episode, type, playerData2, server) {
   try {
     if (!server) return void 0;
-    let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/oppai/${server}/${episode}?server=${playerData2["hostname"]}&source_type=${type}`), { headers: HEADER });
+    let response = await request(`${window["animetsuBackend"]["api"]}/api/anime/oppai/${server}/${episode}?server=${playerData2["hostname"]}&source_type=${type}`, { headers: HEADER });
     if (!response.success || !response.json || response.text == "{}") return void 0;
     let subtitles = [];
     if (response.json["subs"]) {
@@ -133,14 +87,9 @@ var localStorage = {
     removeItem: (str) => {}
 }
 `;
-function dateToUnix(dateStr) {
-  if (!dateStr) return void 0;
-  const date = new Date(dateStr);
-  return Math.floor(date.getTime() / 1e3);
-}
 class Animetsu {
   metadata = {
-    version: "2.2",
+    version: "2.3",
     name: "Animetsu.Live",
     icon: `${WEBSITE}/android-chrome-192x192.png`,
     author: "Owca525",
@@ -183,7 +132,7 @@ class Animetsu {
   extractPlayerData = async (_type, episode, id) => {
     try {
       let tmpEpisode = typeof episode == "object" ? episode["ep"] : episode;
-      let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/servers/${id}/${tmpEpisode}`), { headers: HEADER });
+      let response = await request(`${window["animetsuBackend"]["api"]}/api/anime/servers/${id}/${tmpEpisode}`, { headers: HEADER });
       if (!response.success || !response.json) {
         console.warn("extractPlayerData/Animetsu request failed", response);
         return [];
@@ -214,7 +163,7 @@ class Animetsu {
         animeID = SheepFinderAnime2000(results.map((v) => v.AnimeData), animeData);
       }
       if (!animeID) return;
-      let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/eps/${animeID}`), { headers: HEADER });
+      let response = await request(`${window["animetsuBackend"]["api"]}/api/anime/eps/${animeID}`, { headers: HEADER });
       if (!response.success || !response.json) {
         console.warn("extractEpisodeList/Animetsu request failed", response);
         return;
@@ -244,7 +193,7 @@ class Animetsu {
     return data.episodesData[0].episodes;
   };
   searchAnime = async (name, _page, _params) => {
-    let response = await request(preaperURL(`${window["animetsuBackend"]["api"]}/api/anime/search/?query=${name}`), { headers: HEADER });
+    let response = await request(`${window["animetsuBackend"]["api"]}/api/anime/search/?query=${decodeURI(name)}`, { headers: HEADER });
     if (!response.success || !response.json) return [];
     let data = [];
     for (let index = 0; index < response.json.results.length; index++) {
@@ -313,6 +262,5 @@ class Animetsu {
   };
 }
 export {
-  dateToUnix,
   Animetsu as default
 };
