@@ -1,5 +1,12 @@
-import { genYearsList, request } from "./index.js";
-const pageSize = 20;
+import { convertDateToDateObject, ConvertStringToNumber, CreateSHA256, dateToUnix, genYearsList, request, saveConfig, timeCovertToMs } from "./index.js";
+const defaultPageSize = 20;
+let config = [{
+  type: "hidden",
+  value: "",
+  config_name: "anilist_user",
+  name: "Anilist User"
+}];
+let ACCESS_TOKEN = "";
 const animeData = `
       id
       title {
@@ -82,6 +89,9 @@ const animeData = `
           relationType
           node {
             id
+            format
+            type
+            status(version: 2)
             title {
               romaji
               english
@@ -91,7 +101,6 @@ const animeData = `
               extraLarge
               large
             }
-            bannerImage
           }
         }
       }
@@ -99,6 +108,8 @@ const animeData = `
         nodes {
           mediaRecommendation {
             id
+            type
+            format
             title {
               romaji
               english
@@ -146,7 +157,7 @@ query(
   $minimumTagRank: Int,
   $sort: [MediaSort] = [POPULARITY_DESC, SCORE_DESC]
 ) {
-  Page(page: $page, perPage: ${pageSize}) {
+  Page(page: $page, perPage: CHANGE_ME_PAGE_SIZE) {
     pageInfo {
       total
       perPage
@@ -191,23 +202,138 @@ query(
   }
 }
 `;
+const graphicAiringAnime = `
+query AiringAnimes($page: Int, $perPage: Int, $sort: [AiringSort], $airingAtGreater: Int, $airingAtLesser: Int) {
+    Page(page: $page, perPage: $perPage) {
+        airingSchedules(sort: $sort, airingAt_greater: $airingAtGreater, airingAt_lesser: $airingAtLesser) {
+        id
+        airingAt
+        timeUntilAiring
+        episode
+
+        media {
+          ${animeData}
+        }
+      }
+    }
+}
+`;
+const graphicAnimeListAll = `query (
+  $userId: Int
+  $userName: String
+  $type: MediaType
+) {
+  MediaListCollection(
+    userId: $userId
+    userName: $userName
+    type: $type
+  ) {
+    lists {
+      name
+      isCustomList
+      isCompletedList: isSplitCompletedList
+
+      entries {
+        ...mediaListEntry
+      }
+    }
+  }
+}
+
+fragment mediaListEntry on MediaList {
+  id
+  mediaId
+  status
+  score
+  progress
+  progressVolumes
+  repeat
+  updatedAt
+
+  startedAt {
+    year
+    month
+    day
+  }
+
+  completedAt {
+    year
+    month
+    day
+  }
+
+  media {
+    ${animeData}
+  }
+}`;
+const graphicAnimeListModified = `mutation (
+  $id: Int
+  $mediaId: Int
+  $status: MediaListStatus
+  $score: Float
+  $progress: Int
+  $progressVolumes: Int
+  $repeat: Int
+  $private: Boolean
+  $notes: String
+  $customLists: [String]
+  $hiddenFromStatusLists: Boolean
+  $advancedScores: [Float]
+  $startedAt: FuzzyDateInput
+  $completedAt: FuzzyDateInput
+) {
+  SaveMediaListEntry(
+    id: $id
+    mediaId: $mediaId
+    status: $status
+    score: $score
+    progress: $progress
+    progressVolumes: $progressVolumes
+    repeat: $repeat
+    private: $private
+    notes: $notes
+    customLists: $customLists
+    hiddenFromStatusLists: $hiddenFromStatusLists
+    advancedScores: $advancedScores
+    startedAt: $startedAt
+    completedAt: $completedAt
+  ) {
+    id
+    mediaId
+    status
+  }
+}`;
+const removeAnimeFromList = `
+mutation ($id: Int!) {
+  DeleteMediaListEntry(id: $id) {
+    deleted
+  }
+}
+`;
 const graphicHomeApi = `
   query (
     $season: MediaSeason,
     $seasonYear: Int,
+    $nextSeason: MediaSeason,
+    $nextYear: Int
     $isAdult: Boolean
   ) {
-    trending: Page(page: 1, perPage: ${pageSize}) {
+    trending: Page(page: 1, perPage: CHANGE_ME_PAGE_SIZE) {
       media(sort: TRENDING_DESC, type: ANIME, isAdult: $isAdult) {
         ...media
       }
     }
-    season: Page(page: 1, perPage: ${pageSize}) {
+    season: Page(page: 1, perPage: CHANGE_ME_PAGE_SIZE) {
       media(season: $season, seasonYear: $seasonYear, sort: POPULARITY_DESC, type: ANIME, isAdult: $isAdult) {
         ...media
       }
     }
-    popular: Page(page: 1, perPage: ${pageSize}) {
+    nextSeason: Page(page: 1, perPage: CHANGE_ME_PAGE_SIZE) {
+      media(season: $nextSeason, seasonYear: $nextYear, sort: POPULARITY_DESC, type: ANIME, isAdult: $isAdult) {
+        ...media
+      }
+    }
+    popular: Page(page: 1, perPage: CHANGE_ME_PAGE_SIZE) {
       media(sort: POPULARITY_DESC, type: ANIME, isAdult: $isAdult) {
         ...media
       }
@@ -221,11 +347,35 @@ const graphicHomeApi = `
 const graphicApIDAnime = `
 query(
   $id: Int!
+  $type: MediaType
 ) {
-  Media(id: $id, type: ANIME) {
+  Media(id: $id, type: $type) {
     ${animeData}
   }
 }
+`;
+const userQuery = `
+  query {
+    Viewer {
+      id
+      name
+      createdAt
+      bannerImage
+      about
+      avatar {
+        large
+      }
+    }
+  }
+`;
+const UpdateUserDesc = `
+  mutation($about: String) {
+    UpdateUser(about: $about) {
+      id
+      name
+      about
+    }
+  }
 `;
 const header = {
   "Content-Type": "application/json",
@@ -262,7 +412,10 @@ function Convert(convert) {
           id: element.node.id,
           title: element.node.title,
           coverImage: element.node.coverImage.extraLarge ? element.node.coverImage.extraLarge : element.node.coverImage.large,
-          relationType: element.relationType
+          relationType: element.relationType,
+          status: element["node"]["status"],
+          format: element["node"]["format"],
+          type: element["node"]["type"]
         });
       });
     }
@@ -276,7 +429,9 @@ function Convert(convert) {
         recommendations.push({
           id: element.mediaRecommendation.id,
           title: element.mediaRecommendation.title,
-          coverImage: element.mediaRecommendation.coverImage.extraLarge ? element.mediaRecommendation.coverImage.extraLarge : element.mediaRecommendation.coverImage.large
+          coverImage: element.mediaRecommendation.coverImage.extraLarge ? element.mediaRecommendation.coverImage.extraLarge : element.mediaRecommendation.coverImage.large,
+          type: element["mediaRecommendation"]["type"],
+          format: element["mediaRecommendation"]["format"]
         });
       });
     }
@@ -294,21 +449,65 @@ function Convert(convert) {
     }
   };
 }
-async function sendPost(variable, query) {
-  return await request("https://graphql.anilist.co", { method: "POST", headers: header, body: JSON.stringify({ query, variables: variable }) });
+function getHeader() {
+  if (`${ACCESS_TOKEN}`.length > 0) return {
+    ...header,
+    "Authorization": `Bearer ${ACCESS_TOKEN}`
+  };
+  return header;
 }
-async function sendToApi(variable, query) {
-  let data = await request("https://graphql.anilist.co", { method: "POST", headers: header, body: JSON.stringify({ query, variables: variable }) });
-  if (data.success && data.json) {
-    return data.json.data.Page.media.map((data2) => Convert(data2));
+let globalAnilistCache = [];
+async function addToAnilistCache(timer, object, response) {
+  const hash = await CreateSHA256(JSON.stringify(object));
+  globalAnilistCache = [...globalAnilistCache, {
+    data: response,
+    timer: setTimeout(() => {
+      globalAnilistCache = globalAnilistCache.filter((el) => el.hash != hash);
+    }, timer),
+    hash
+  }];
+}
+async function findAnilistCache(object) {
+  const hash = await CreateSHA256(JSON.stringify(object));
+  const finded = globalAnilistCache.find((el) => el["hash"] == hash);
+  if (finded) return finded.data;
+  return void 0;
+}
+async function sendPost(variable, query, timer = 0) {
+  const cache = await findAnilistCache({ query, variables: variable });
+  if (cache) return cache;
+  const response = await request(
+    "https://graphql.anilist.co",
+    { method: "POST", headers: getHeader(), body: JSON.stringify({ query, variables: variable }) },
+    window.api ? false : true
+  );
+  if (response.json && response.success && timer > 0) {
+    await addToAnilistCache(timer, { query, variables: variable }, response);
   }
-  return [];
+  return response;
+}
+async function sendToApi(variable, query, timer = 0) {
+  const cache = await findAnilistCache({ query, variables: variable });
+  if (cache) return cache.json.data.Page.media.map((data2) => Convert(data2));
+  let data = await request(
+    "https://graphql.anilist.co",
+    { method: "POST", headers: getHeader(), body: JSON.stringify({ query, variables: variable }) },
+    window.api ? false : true
+  );
+  if (!data.success || !data.json) {
+    console.warn("Failed Anilist/sendToApi Request", data);
+    return [];
+  }
+  if (timer > 0) addToAnilistCache(timer, { query, variables: variable }, data);
+  return data.json.data.Page.media.map((data2) => Convert(data2));
 }
 function getSeasonFromDate() {
   const now = /* @__PURE__ */ new Date();
   const month = now.getMonth() + 1;
   const year = now.getFullYear();
+  const list = ["WINTER", "SPRING", "SUMMER", "FALL"];
   let season;
+  let nextSeason = list[0];
   if (month >= 1 && month <= 3) {
     season = "WINTER";
   } else if (month >= 4 && month <= 6) {
@@ -318,73 +517,61 @@ function getSeasonFromDate() {
   } else {
     season = "FALL";
   }
-  return { season, seasonYear: year };
+  const finded = list.findIndex((v) => season == v);
+  if (list.length - 1 > list.findIndex((v) => season == v)) nextSeason = list[finded + 1];
+  return { season, nextSeason, seasonYear: year, nextYear: finded == 3 ? year + 1 : year };
 }
 async function fetchCategory(params, title) {
   const globalParams = params;
-  console.log(params, title);
   let container = {
     title,
-    data: await sendToApi(params, graphicApi),
+    data: await sendToApi(params, replacePageInGraphicApi(graphicApi, defaultPageSize.toString()), timeCovertToMs({ min: 5 })),
     onScrollDownFunction: async (_search, page, _params) => {
-      let resp = await sendToApi({ ...globalParams, page }, graphicApi);
-      console.log(globalParams, page, resp);
+      let resp = await sendToApi({ ...globalParams, page }, replacePageInGraphicApi(graphicApi, defaultPageSize.toString()), timeCovertToMs({ min: 5 }));
       return {
-        maxPage: pageSize,
-        data: resp
+        maxPage: defaultPageSize,
+        content: resp,
+        nextPage: !(resp.length < defaultPageSize)
       };
     }
   };
   return container;
 }
-async function searchInAnilist(name, page, params, isAdult = false, MaxPage = 20) {
-  try {
-    let variables = {
-      page,
-      sort: "SEARCH_MATCH",
-      type: "ANIME",
-      isAdult
-    };
-    if (name.replaceAll(" ", "") != "") variables = { ...variables, search: name };
-    if (params) {
-      if (params) variables = { ...variables, genres: params.genres };
-      if (params.genres) variables = { ...variables, genres: params.genres };
-      if (params.genres) variables = { ...variables, genres: params.genres };
-      if (params.years) variables = { ...variables, seasonYear: parseInt(params.years) };
-      if (params.seasons) variables = { ...variables, season: params.seasons.toUpperCase() };
-      if (params.format) variables = { ...variables, format: params.format.map((tmp) => tmp.toUpperCase().replaceAll(" ", "_")) };
-      if (params.airing) variables = { ...variables, status: params.airing.toUpperCase().replaceAll(" ", "_") };
-    }
-    const resp = await sendToApi(variables, graphicApi.replaceAll("20", MaxPage.toString()));
-    return {
-      data: resp,
-      maxPage: pageSize
-    };
-  } catch (error) {
-    console.error("Error in searchInAnilist/anilist", error);
-    return {
-      data: [],
-      maxPage: pageSize
-    };
-  }
-}
-async function searchWrapper(name, page, params, isAdult = false, MaxPage = 20) {
-  try {
-    return await searchInAnilist(name, page, params, isAdult, MaxPage);
-  } catch (error) {
-    console.error("Error in searchWrapper/anilist", error);
-    return {
-      data: [],
-      maxPage: pageSize
-    };
-  }
+function replacePageInGraphicApi(graphicTMP, variable) {
+  return graphicTMP.replaceAll("CHANGE_ME_PAGE_SIZE", variable);
 }
 class AnilistApi {
   metadata = {
     version: "2.0",
-    name: "AnilistApi",
-    pageSize,
-    searchOption: {
+    name: "Anilist",
+    pageSize: defaultPageSize,
+    searchOption: [],
+    author: "Owca525",
+    urlWebsite: "https://anilist.co",
+    icon: "https://anilist.co/img/icons/icon.svg",
+    type: "information",
+    shareWebsite: {
+      manga: "https://anilist.co/manga/",
+      anime: "https://anilist.co/anime/"
+    },
+    configFormat: [{
+      type: "hidden",
+      value: "",
+      config_name: "anilist_user",
+      name: "Anilist User"
+    }],
+    loginMethod: {
+      type: "deeplink",
+      deepLinkurl: "https://anilist.co/api/v2/oauth/authorize?client_id=30450&response_type=code"
+    }
+  };
+  constructor(cfg) {
+    config = cfg;
+    if (Array.isArray(cfg)) {
+      const finded = cfg.find((v) => v["config_name"] == "anilist_user");
+      if (finded && typeof finded["value"] == "object") ACCESS_TOKEN = finded["value"]["access_token"];
+    }
+    const options = {
       genres: [
         "Action",
         "Adventure",
@@ -406,60 +593,143 @@ class AnilistApi {
         "Supernatural",
         "Thriller"
       ],
-      seasons: ["Winter", "Spring", "Summer", "Fall"],
+      seasons: ["WINTER", "SPRING", "SUMMER", "FALL"],
       years: genYearsList(1940),
       format: ["TV", "Movie", "TV Short", "special", "OVA", "ONA"],
-      statuses: ["Releasing", "Finished", "Not Yet Released", "Cancelled"]
-    },
-    author: "Owca525",
-    urlWebsite: "https://anilist.co",
-    icon: "https://anilist.co/img/icons/icon.svg"
-  };
-  config = {
-    "Adult Mode": false,
-    "Max Page Size": 20
-  };
-  // async schedule(context: { airingStart: number; airingEnd: number; }, callbacks: { onSuccess: (data: containerData) => void; onError: (error: string) => void; }) {
-  //   let week = getWeek()
-  //   console.log(week)
-  //   let variables = {
-  //     page: 1,
-  //     perPage: 50,
-  //     sort: ["TIME"],
-  //     airingAtGreater: week.startWeekUnix,
-  //     airingAtLesser: week.endWeekUnix
-  //   }
-  //   console.log(await sendPost(variables, graphicAiringAnime))
-  // }
-  async search(context, callbacks) {
-    try {
-      let title = void 0;
-      if (!(context.name.replaceAll(" ", "") == "")) title = `Searching: ${context.name}`;
-      const resp = await searchInAnilist(context.name, context.page, context.params, this.config["Adult Mode"], this.config["Max Page Size"]);
-      callbacks.onSuccess({
-        title,
-        data: resp.data,
-        onScrollDownFunction: async (search, page, params) => await searchWrapper(search ? search : "", page, params, this.config["Adult Mode"], this.config["Max Page Size"])
-      });
-    } catch (error) {
-      console.error("Error in search/Anilistapi", error);
-      callbacks.onError(`${error}`);
-    }
+      statuses: ["RELEASING", "FINISHED", "NOT_YET_RELEASED", "CANCELLED"]
+    };
+    let newOptions = [
+      {
+        type: "genres",
+        placeholder: "filter.placeholderGenres",
+        title: "filter.genres",
+        langPath: "anime_genres.",
+        options: options.genres
+      },
+      {
+        type: "years",
+        title: "filter.year",
+        placeholder: "filter.placeholderYears",
+        langPath: "",
+        options: options.years
+      },
+      {
+        type: "season",
+        placeholder: "filter.placeholderSeason",
+        title: "filter.season",
+        langPath: "anime_seasons.",
+        options: options.seasons
+      },
+      {
+        type: "format",
+        placeholder: "filter.placeholderFormat",
+        title: "filter.format",
+        langPath: "anime_formats.",
+        options: options.format
+      },
+      {
+        type: "airing",
+        placeholder: "filter.placeholderAiring",
+        title: "filter.airing",
+        langPath: "anime_statuses.",
+        options: options.statuses
+      }
+    ];
+    this.metadata = {
+      ...this.metadata,
+      searchOption: newOptions
+    };
   }
-  async home(callbacks) {
+  async schedule(airingStart, airingEnd) {
+    let currentPage = 1;
+    let animeList = [];
+    while (true) {
+      let variables = {
+        page: currentPage,
+        perPage: 50,
+        sort: ["TIME"],
+        airingAtGreater: airingStart,
+        airingAtLesser: airingEnd,
+        isAdult: false
+      };
+      try {
+        let response = await sendPost(variables, graphicAiringAnime, timeCovertToMs({ hour: 1 }));
+        if (!response.success || !response.json) return animeList;
+        animeList = [...animeList, ...response.json["data"]["Page"]["airingSchedules"].map((v) => {
+          const converted = Convert(v["media"]);
+          return {
+            ...converted,
+            AnimeData: {
+              ...converted.AnimeData,
+              nextAiringEpisode: {
+                airingAt: v["airingAt"],
+                episode: v["episode"],
+                timeUntilAiring: v["timeUntilAiring"]
+              }
+            }
+          };
+        })];
+        currentPage += 1;
+        if (response.json["data"]["Page"]["airingSchedules"].length < variables["perPage"]) break;
+      } catch (error) {
+        console.error("Anilist/schedule", error);
+        break;
+      }
+    }
+    return animeList;
+  }
+  search = async (name, page, params) => {
+    try {
+      let variables = {
+        page,
+        sort: "SEARCH_MATCH",
+        type: "ANIME",
+        isAdult: false
+      };
+      if (name.replaceAll(" ", "") != "") variables = { ...variables, search: name };
+      if (params) {
+        if (params.genres) variables = { ...variables, genres: params.genres };
+        if (params.years) variables = { ...variables, seasonYear: parseInt(params.years) };
+        if (params.season) variables = { ...variables, season: params.season.toUpperCase() };
+        if (params.format) variables = { ...variables, format: params.format.toUpperCase() };
+        if (params.airing) variables = { ...variables, status: params.airing.toUpperCase() };
+      }
+      const resp = await sendPost(variables, replacePageInGraphicApi(graphicApi, defaultPageSize.toString()), timeCovertToMs({ min: 5 }));
+      if (!resp["json"] || !resp["success"]) return { content: [], maxPage: defaultPageSize, nextPage: false };
+      return {
+        content: resp["json"].data.Page.media.map((data) => Convert(data)),
+        maxPage: defaultPageSize,
+        nextPage: resp["json"]["data"]["Page"]["pageInfo"]["hasNextPage"]
+      };
+    } catch (error) {
+      console.error("Error in searchInAnilist/anilist", error);
+      return {
+        content: [],
+        maxPage: defaultPageSize,
+        nextPage: false
+      };
+    }
+  };
+  home = async () => {
     try {
       let season = getSeasonFromDate();
-      let data = await sendPost({ season: season.season, seasonYear: season.seasonYear, isAdult: this.config["Adult Mode"] }, graphicHomeApi.replaceAll("20", this.config["Max Page Size"]));
+      let data = await sendPost({
+        season: season.season,
+        seasonYear: season.seasonYear,
+        isAdult: false,
+        nextSeason: season.nextSeason,
+        nextYear: season.nextYear
+      }, replacePageInGraphicApi(graphicHomeApi, defaultPageSize.toString()), timeCovertToMs({ min: 10 }));
       if (!data.success || !data.json) {
-        console.log(data);
-        return callbacks.onError("Anilist isn't accessible");
+        console.warn("home/anilistapi Failed Request", data);
+        return data.json && data.json["errors"] ? { error: data.json["errors"][0]["message"] } : void 0;
       }
       let home = [
         {
           title: "home.trending_now",
           data: data.json.data.trending.media.map((anime) => Convert(anime)),
           horizontal: true,
-          onTitleClick: async () => await fetchCategory({ ...tendingAnime, isAdult: this.config["Adult Mode"] }, "home.trending_now")
+          onTitleClick: async () => await fetchCategory({ ...tendingAnime, isAdult: false }, "home.trending_now")
         },
         {
           title: "home.popular_in_this_season",
@@ -470,35 +740,193 @@ class AnilistApi {
             season: season.season,
             seasonYear: season.seasonYear,
             type: "ANIME",
-            isAdult: this.config["Adult Mode"]
+            isAdult: false
           }, "home.popular_in_this_season")
+        },
+        {
+          title: "Upcoming Next Season",
+          data: data.json.data.nextSeason.media.map((anime) => Convert(anime)),
+          horizontal: true,
+          onTitleClick: async () => await fetchCategory({
+            page: 1,
+            season: season.nextSeason,
+            seasonYear: season.nextYear,
+            type: "ANIME",
+            isAdult: false
+          }, "Upcoming Next Season")
         },
         {
           title: "home.all_time_popular",
           data: data.json.data.popular.media.map((anime) => Convert(anime)),
           horizontal: true,
-          onTitleClick: async () => await fetchCategory({ ...allPopular, isAdult: this.config["Adult Mode"] }, "home.all_time_popular")
+          onTitleClick: async () => await fetchCategory({ ...allPopular, isAdult: false }, "home.all_time_popular")
         }
       ];
-      callbacks.onSuccess({ sections: home, topCards: home[0] });
+      return { sections: home, topCards: home[0] };
     } catch (error) {
       console.error("Error in home/anilistapi", error);
-      callbacks.onError("Anilist isn't accessible");
+      return;
     }
-  }
-  async anime(context) {
+  };
+  anime = async (id) => {
     try {
-      let req = await sendPost({ id: context.id }, graphicApIDAnime);
-      console.log(req);
+      let req = await sendPost({ id, type: "ANIME" }, graphicApIDAnime, timeCovertToMs({ min: 5 }));
       if (!req.success || !req.json) return;
       return Convert(req.json.data.Media).AnimeData;
     } catch (error) {
       console.error("Uknown error in anime/anilistapi", error);
       return;
     }
+  };
+  getManga = async (id) => {
+    try {
+      let req = await sendPost({ id, type: "MANGA" }, graphicApIDAnime, timeCovertToMs({ min: 5 }));
+      if (!req.success || !req.json) return;
+      return Convert(req.json.data.Media).AnimeData;
+    } catch (error) {
+      console.error("Uknown error in getManga/anilistapi", error);
+      return;
+    }
+  };
+  login = async (content) => {
+    if (!content || !content["code"]) return;
+    const token = `${content["code"]}`.replace("?code=", "");
+    const response = await request("https://anilist.co/api/v2/oauth/token", {
+      method: "POST",
+      headers: header,
+      body: JSON.stringify({
+        grant_type: "authorization_code",
+        client_id: 30450,
+        client_secret: "DyAHkynxiqCjGVqD6Lp6oeCboQOf5HYK3s0yblws",
+        redirect_uri: "animu://anilist",
+        code: token
+      })
+    });
+    if (!response["success"] || !response["json"]) return;
+    config = config.map((v) => v["config_name"] == "anilist_user" ? { ...v, value: response["json"] } : v);
+    saveConfig(config);
+    ACCESS_TOKEN = response["json"]["access_token"];
+    const userResponse = await request("https://graphql.anilist.co", {
+      method: "POST",
+      headers: getHeader(),
+      body: JSON.stringify({ query: userQuery })
+    });
+    if (!userResponse["success"] || !userResponse["json"]) return;
+    const user = userResponse["json"]["data"]["Viewer"];
+    return {
+      username: user["name"],
+      description: user["about"],
+      created_date: user["createdAt"],
+      animu_time: 0,
+      banner: user["bannerImage"],
+      avatar: user["avatar"]["large"],
+      logged: true
+    };
+  };
+  isLogged = async () => {
+    if (`${ACCESS_TOKEN}`.length > 0) return true;
+    return false;
+  };
+  unLogin = async () => {
+    config = config.map((v) => v["config_name"] == "anilist_user" ? { ...v, value: "" } : v);
+    ACCESS_TOKEN = "";
+    saveConfig(config);
+    return { redirect: "https://anilist.co/settings/apps" };
+  };
+  getUser = async () => {
+    const userResponse = await request("https://graphql.anilist.co", {
+      method: "POST",
+      headers: getHeader(),
+      body: JSON.stringify({ query: userQuery })
+    });
+    if (!userResponse["success"] || !userResponse["json"]) return;
+    const user = userResponse["json"]["data"]["Viewer"];
+    return {
+      username: user["name"],
+      description: user["about"],
+      created_date: user["createdAt"],
+      animu_time: 0,
+      banner: user["bannerImage"],
+      avatar: user["avatar"]["large"],
+      logged: true
+    };
+  };
+  updateUser = async (user) => {
+    const response = await request("https://graphql.anilist.co", {
+      method: "POST",
+      headers: getHeader(),
+      body: JSON.stringify({
+        query: UpdateUserDesc,
+        variables: {
+          about: user["description"]
+        }
+      })
+    });
+    return response["success"];
+  };
+  async setAnimeInList(id, variable) {
+    const tmpHeader = getHeader();
+    if (!tmpHeader["Authorization"]) return false;
+    const variables = {
+      mediaId: id,
+      status: variable["status"],
+      score: ConvertStringToNumber(`${variable["score"]}`),
+      progress: ConvertStringToNumber(`${variable["progress"]}`),
+      repeat: variable["reapeat"],
+      startedAt: convertDateToDateObject(variable["startWatch"]),
+      completedAt: convertDateToDateObject(variable["endWatch"])
+    };
+    const response = await sendPost(variables, graphicAnimeListModified);
+    return response.success;
   }
+  async getAnimeList() {
+    const tmpHeader = getHeader();
+    if (!tmpHeader["Authorization"]) return [];
+    const user = await this.getUser();
+    if (!user) return [];
+    const response = await sendPost({ type: "ANIME", userName: user.username }, graphicAnimeListAll);
+    if (!response.success || !response.json) return [];
+    let tmpList = [];
+    for (let index = 0; index < response.json["data"]["MediaListCollection"]["lists"].length; index++) {
+      const element = response.json["data"]["MediaListCollection"]["lists"][index];
+      tmpList = [...tmpList, ...element["entries"]];
+    }
+    const readyList = tmpList.map((item) => {
+      try {
+        const startWatch = item["startedAt"]["day"] != void 0 && item["startedAt"]["month"] != void 0 && item["startedAt"]["year"] != void 0 ? dateToUnix(new Date(item["startedAt"]["year"], item["startedAt"]["month"] - 1, item["startedAt"]["day"]).toString()) : void 0;
+        const endWatch = item["completedAt"]["day"] != void 0 && item["completedAt"]["month"] != void 0 && item["completedAt"]["year"] != void 0 ? dateToUnix(new Date(item["completedAt"]["year"], item["completedAt"]["month"] - 1, item["completedAt"]["day"]).toString()) : void 0;
+        return {
+          ...Convert(item["media"]),
+          animulist: {
+            status: item["status"],
+            score: item["score"],
+            reapeat: item["repeat"],
+            startWatch,
+            endWatch,
+            added: dateToUnix((/* @__PURE__ */ new Date()).toString()),
+            lastUpdate: item["updatedAt"],
+            favorite: false,
+            progress: item["progress"],
+            id: item["id"]
+          }
+        };
+      } catch (error) {
+        console.error("Failed Convert map/anilistapi", error, item);
+        return void 0;
+      }
+    }).filter((v) => v != void 0);
+    return readyList;
+  }
+  removeAnimeFromList = async (id) => {
+    const removing = await request("https://graphql.anilist.co", {
+      method: "POST",
+      headers: getHeader(),
+      body: JSON.stringify({ query: removeAnimeFromList, variables: { id: Number(id) } })
+    });
+    if (!removing.success || !removing.json) return false;
+    return removing.json["data"]["DeleteMediaListEntry"]["deleted"];
+  };
 }
 export {
-  AnilistApi as default,
-  searchInAnilist
+  AnilistApi as default
 };

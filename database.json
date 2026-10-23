@@ -7,65 +7,54 @@
         "author": "Owca525",
         "urlWebsite": "https://anilist.co",
         "icon": "https://anilist.co/img/icons/icon.svg",
-        "sha256": "625ae7a82cf2baeee12a8cebce6d141c754a4977b7c54edf4ef2c9e03d111d80"
+        "sha256": "c57af6f13958e1a2dc931f8af7b68e8a55b054409c0ce4feefede3b56d2f2dbf"
     },
     {
-        "name": "Allmanga",
-        "file": "/plugins/allmanga.js",
+        "name": "Anikoto",
+        "file": "/plugins/anikoto.js",
         "type": "player",
-        "ver": "2.2",
+        "ver": "1.1",
         "author": "Owca525",
-        "urlWebsite": "https://allmanga.to",
-        "icon": "https://allmanga.to/android-icon-192x192.png",
-        "sha256": "1f8f6b3ffb36a0da3c4c03943c856637a0947de6ecb2d3e6bf59327ec70e93e2"
+        "urlWebsite": "https://anikototv.to",
+        "icon": "https://anikototv.to/AnikotoTheme/assets/images/logo.png",
+        "sha256": "87de1e29d681fb8fdce4ed6b0bba391e785dda437ca74b289c5656f2d8a7ef9e"
+    },
+    {
+        "name": "AnimeOnsen",
+        "file": "/plugins/AnimeOnsen.js",
+        "type": "player",
+        "ver": "1.3",
+        "author": "Owca525",
+        "urlWebsite": "ttps://www.animeonsen.xyz",
+        "icon": "https://www.animeonsen.xyz/favicon/192x192.png",
+        "sha256": "3c51feab1c4ad9482be9dd798f255b8f8a3998276d18a8519ee039ad5169369d"
     },
     {
         "name": "AniZone",
         "file": "/plugins/anizone.js",
         "type": "player",
-        "ver": "1.3",
+        "ver": "2.1",
         "author": "Owca525",
         "urlWebsite": "https://anizone.to",
-        "sha256": "f79d6c0ddfe5bd4a85623f2dd2fbed40b49a6f527bf230dc2ac3451add32371a"
+        "sha256": "4c40d33f2cd4dd090ea09c6e717a0d825124b81263fd6dde8c7c15b7898ef2e9"
     },
     {
-        "name": "Lycoris.cafe",
-        "file": "/plugins/lycoriscafe.js",
-        "type": "player",
-        "ver": "1.7",
-        "author": "Owca525",
-        "urlWebsite": "https://www.lycoris.cafe",
-        "icon": "https://www.lycoris.cafe/favicon.ico",
-        "sha256": "6263a1967e7e21b0e0407848028589b167cadc454613e4a8981a07f7a0259426"
-    },
-    {
-        "name": "Animetsu.Live",
-        "file": "/plugins/animetsu.js",
-        "type": "player",
-        "ver": "2.3",
-        "author": "Owca525",
-        "urlWebsite": "https://animetsu.live/",
-        "icon": "https://animetsu.live/apple-touch-icon.png",
-        "sha256": "c1c01be8fefe655eea38d42f2e1ce13ebcd1d6eb75a73fc25c202f559720c1a2"
-    },
-    {
-        "name": "AnimePahe",
-        "file": "/plugins/animepahe.js",
-        "type": "player",
-        "ver": "1.2",
-        "author": "Owca525",
-        "urlWebsite": "https://animepahe.pw/",
-        "icon": "https://animepahe.pw/favicon-96x96.png",
-        "sha256": "540502cc92fdc1370b78e91066d9f1c5dc687d632d09133ed06cdea0c2d92668"
-    },
-    {
-        "name": "Senshi",
-        "file": "/plugins/senshi.js",
+        "name": "HIanime",
+        "file": "/plugins/hianime.js",
         "type": "player",
         "ver": "1.1",
         "author": "Owca525",
-        "urlWebsite": "https://senshi.live",
-        "icon": "https://senshi.live/assets/Senshi_Logo_3-Dm8yKkWF.png",
-        "sha256": "b723a6d13aed56139017e3939a75097e6d23a630b572e9292c96c76c97165a4d"
+        "urlWebsite": "https://hianime.at",
+        "icon": "https://hianime.at/theme/images/logo.png",
+        "sha256": "29ca5ec25dd25491a461bff84f6ad4f2e218cceee1b6a2e68519932367a1babe"
+    },
+    {
+        "name": "ReAnime",
+        "file": "/plugins/re_anime.js",
+        "type": "player",
+        "ver": "1.0",
+        "author": "Owca525",
+        "urlWebsite": "https://reanime.to",
+        "sha256": "9c618904e240345c2062baff67b8e1e48921acbcec4702382be9370a5001bc3e"
     }
 ]

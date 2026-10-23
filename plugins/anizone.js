@@ -1,153 +1,267 @@
-import { convertChaptersVTT, convertText, request } from "./index.js";
-const WEB = "https://anizone.to";
-const CARDS_REGEX = /<div[^>]*class=["']grid grid-cols-1 2xl:grid-cols-2 gap-4["'][^>]*>(.*?)<\/div>/gs;
-const HEADER = {
-  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0"
+import { convertChaptersVTT, request, SheepFinderAnime2000 } from "./index.js";
+const WEBSITE = "https://anizone.to";
+const PluginHeader = {
+  "User-Agent": navigator.userAgent
 };
-async function searchAnime(name) {
+const PLAYER_REGEX = /vidstackPlayer\(JSON\.parse\('([\s\S]*?)'\)\)/;
+const SEARCH_REGEX = /items:\s*JSON\.parse\('((?:\\.|[^'\\])*)'\)/;
+const EPISODE_REGEX = /items:\s*JSON\.parse\('(\[[\s\S]*\])'\)/;
+const ANIMETITLE_REGEX = /anmTitles:\s*JSON\.parse\('((?:\\.|[^'\\])*)'\)/;
+const LANG_SUPPORT = {
+  1: "en",
+  2: "fr",
+  3: "pl",
+  4: "cs",
+  5: "ja",
+  6: "ru",
+  7: "ko",
+  8: "ja",
+  9: "zh-CN",
+  10: "de",
+  11: "it",
+  12: "sv",
+  13: "es",
+  14: "pt",
+  15: "ca",
+  16: "zh-TW",
+  17: "hu",
+  18: "vi",
+  19: "tr",
+  20: "sl",
+  21: "pt-BR",
+  22: "lv",
+  23: "lt",
+  24: "hr",
+  25: "sk",
+  26: "fi",
+  27: "da",
+  28: "ro",
+  29: "et",
+  30: "el",
+  31: "mn",
+  32: "sr",
+  33: "uk",
+  34: "bg",
+  35: "he",
+  36: "ar",
+  37: "fa",
+  38: "zh-TW",
+  39: "zh",
+  40: "th",
+  41: "es-419",
+  42: "gl",
+  43: "nl",
+  44: "tl",
+  45: "ms",
+  46: "id",
+  47: "no",
+  48: "bn",
+  49: "zh",
+  50: "unknown",
+  51: "ko",
+  52: "sq",
+  53: "ur",
+  54: "ta",
+  55: "other",
+  56: "is",
+  57: "eo",
+  58: "hi",
+  59: "af",
+  60: "te",
+  61: "la",
+  62: "th",
+  63: "zh-CN",
+  64: "zh-HK",
+  65: "eu",
+  66: "mk",
+  67: "gu",
+  68: "mr",
+  69: "kn",
+  70: "pa",
+  71: "km",
+  72: "ne"
+};
+const types = {
+  "TV Series": "TV"
+};
+function decodeHTML(str) {
   try {
-    let url = `${WEB}/anime?search=${convertText(name)}`;
-    const req = await request(url, { headers: HEADER });
-    if (!req.success) return [];
-    let tmp = [...req.text.matchAll(CARDS_REGEX)];
-    if (tmp.length <= 0) return [];
-    let finnallData = [];
-    for (let index = 0; index < tmp.length; index++) {
-      const element = tmp[index];
-      let animeID = [...element[0].matchAll(/wire:key=["']([^"']+)["']/g)];
-      let animeIMG = [...element[0].matchAll(/src=["'](https:\/\/anizone\.to\/images\/anime\/[^"']+)["']/g)];
-      let animeTITLE = [...element[0].matchAll(/alt=["']([^"']+)["']/g)];
-      finnallData.push({ AnimeData: {
-        characters: [],
-        studios: [],
-        coverImage: animeIMG[0][1],
-        title: {
-          english: void 0,
-          native: decodeURI(animeTITLE[0][1]),
-          romaji: decodeURI(animeTITLE[0][1])
-        },
-        id: "",
-        player_ID: animeID[0][1].slice(2),
-        genres: void 0
-      } });
-    }
-    return finnallData;
+    return JSON.parse(
+      str.replace(
+        /\\u([0-9a-fA-F]{4})/g,
+        (_, hex) => String.fromCharCode(parseInt(hex, 16))
+      ).replace(/\\\//g, "/").replace(/\\(?!["\\/bfnrtu])/g, "")
+    );
   } catch (error) {
-    console.error(error);
-    return [];
+    console.error("Anizone/decodeHTML", error, str);
+    return void 0;
   }
 }
-class Anizone {
+async function extractChapters(url) {
+  if (!url) return [];
+  let is_type = { opening: false, ending: false };
+  let data = await convertChaptersVTT(url, { headers: PluginHeader });
+  const compare = (str, val) => {
+    const content = data.find((v) => str.length == 2 ? `${v.name}`.includes(str) : `${v.name}`.toLowerCase().includes(str));
+    if (content && is_type[val] == false) {
+      data = data.map((v) => JSON.stringify(content) == JSON.stringify(v) ? { ...v, type: val } : v);
+      is_type = { ...is_type, [val]: true };
+    }
+  };
+  compare("OP", "opening");
+  compare("opening", "opening");
+  compare("intro", "opening");
+  compare("ED", "ending");
+  compare("ending", "ending");
+  compare("credits", "ending");
+  return data;
+}
+class template {
   metadata = {
-    version: "1.3",
+    version: "2.1",
     name: "AniZone",
     author: "Owca525",
-    supportLang: ["en", "pl", "de"],
-    urlWebsite: WEB,
+    supportLang: Object.values(LANG_SUPPORT),
+    urlWebsite: WEBSITE,
     type: "player"
   };
   extractPlayerData = async (_type, episode, id) => {
-    let mainEpisode = typeof episode == "object" ? episode.ep : episode;
-    let url = `${WEB}/anime/${id}/${mainEpisode}`;
-    const req = await request(url, { headers: HEADER });
-    if (!req.success) return [];
-    let data = req.text;
-    let storyboard = [...data.matchAll(/https:\/\/seiryuu\.vid-cdn\.xyz\/[a-z0-9-]+\/storyboard\.vtt/gi)];
-    let chapters = [...data.matchAll(/https:\/\/seiryuu\.vid-cdn\.xyz\/[a-z0-9-]+\/chapters\.vtt/gi)];
-    let urls = [...data.matchAll(/https:\/\/seiryuu\.vid-cdn\.xyz\/[a-z0-9-]+\/master\.m3u8/gi)];
-    if (urls.length <= 0) return [];
-    let otherFiles = [...data.matchAll(/<track[^>]*\s+src=["']?(?<src>[^"'\s>]+)["']?[^>]*\s+data-type=["']?(?<dataType>[^"'\s>]+)["']?[^>]*\s+kind=["']?(?<kind>[^"'\s>]+)["']?[^>]*\s+label=["']?(?<label>[^"']+)["']?[^>]*\s+srclang=["']?(?<srclang>[^"'\s>]+)["']?[^>]*>/gi)];
-    if (otherFiles.length <= 0) return [];
-    let subList = [];
-    for (let index = 0; index < otherFiles.length; index++) {
-      const element = otherFiles[index];
-      if (element[3] == "subtitles") {
-        subList.push({
-          url: element[1],
-          lang: element[5],
-          label: element[4],
-          format: element[2]
-        });
-      }
+    const response = await request(`${WEBSITE}/anime/${id}/${episode["ep"]}`, { headers: PluginHeader });
+    const regex = response["text"].match(PLAYER_REGEX);
+    if (!regex) return [];
+    try {
+      const player_information = decodeHTML(regex[1]);
+      if (!player_information) return [];
+      const isSubtitlesDefault = player_information["subtitles"].find((v) => v["default"]);
+      return [{
+        hostname: "Anizone",
+        resolution: [{
+          res: "1080",
+          url: player_information["src"],
+          reqHeader: PluginHeader,
+          hls: true,
+          defaultSubtitles: isSubtitlesDefault ? true : false
+        }],
+        subtitles: player_information["subtitles"].map((v) => ({
+          url: v["file"],
+          lang: v["language"],
+          label: v["title"],
+          format: v["format"],
+          default: v["default"]
+        })),
+        listChapters: await extractChapters(player_information["chapter"]),
+        storyboardVTT: player_information["storyboard"]
+      }];
+    } catch (error) {
+      console.error("anizone/extractPlayerData", error);
+      return [];
     }
-    let chapterList = [];
-    if (chapters.length > 0) {
-      let data2 = await convertChaptersVTT(chapters[0][0]);
-      for (let index = 0; index < data2.length; index++) {
-        const element = data2[index];
-        if (element.name == "Intro") {
-          chapterList.push({ ...element, type: "opening" });
-          continue;
-        }
-        if (element.name == "Credits") {
-          chapterList.push({ ...element, type: "ending" });
-          continue;
-        }
-        if (element.name == "Ending") {
-          chapterList.push({ ...element, type: "ending" });
-          continue;
-        }
-        if (element.name == "Opening") {
-          chapterList.push({ ...element, type: "opening" });
-          continue;
-        }
-        chapterList.push(element);
-      }
-    }
-    return [{
-      hostname: "Anizone.to",
-      subtitles: subList,
-      listChapters: chapterList,
-      external: chapters.length > 0 ? { chaptersUrl: chapters[0][0] } : void 0,
-      storyboardVTT: storyboard.length > 0 ? storyboard[0][0] : void 0,
-      resolution: [{ res: "", url: urls[0][0], defaultSubtitles: true, hls: true }]
-    }];
   };
   extractEpisodeList = async (animeData, anime_id) => {
     try {
-      let idAnime = anime_id;
-      if (!idAnime && animeData) {
-        let data2 = await searchAnime(animeData.title.romaji);
-        if (data2.length <= 0) return;
-        idAnime = data2[0].AnimeData.player_ID;
+      if (animeData && !anime_id) {
+        const search_resp = await this.searchAnime(animeData["title"]["romaji"]);
+        if (search_resp.length <= 0) return;
+        anime_id = SheepFinderAnime2000(search_resp.map((v) => v["AnimeData"]), animeData);
       }
-      if (!idAnime) return;
-      let url = `${WEB}/anime/${idAnime}`;
-      const req = await request(url, { headers: HEADER });
-      if (!req.success) return void 0;
-      let data = req.text;
-      let tmpData = [...data.matchAll(/<ul.*?>(.*?)<\/ul>/gs)];
-      let urls = [...tmpData[0][0].matchAll(/href=["'](https:\/\/anizone\.to\/anime\/[^\s"']+)["']/g)];
-      let dataList = [...data.matchAll(/<div[^>]*class="(?=[^"]*text-slate-100)(?=[^"]*text-xs)(?=[^"]*lg:text-base)(?=[^"]*flex)(?=[^"]*flex-wrap)(?=[^"]*justify-center)(?=[^"]*gap-2)(?=[^"]*sm:gap-6)[^"]*"[^>]*>[\s\S]*?<\/div>/g)];
-      let informationList = [...dataList[0][0].matchAll(/<[^>]*class="[^"]*\binline-block\b[^"]*"[^>]*>([\s\S]*?)<\/[^>]+>/g)];
-      let ep = void 0;
-      for (let index = 0; index < informationList.length; index++) {
-        const element = informationList[index];
-        if (element[1].includes("Episodes")) ep = parseInt(element[1].split(" ")[0]);
-      }
-      let lengthEpisodes = urls.filter((value) => !value[0].substring(value[0].lastIndexOf("/")).includes("s")).length;
-      if (!ep) return void 0;
-      let episodeList2 = [];
-      let tmp = ep;
-      if (lengthEpisodes < ep && lengthEpisodes != 36) tmp = lengthEpisodes;
-      for (let index = 1; index < tmp + 1; index++) {
-        episodeList2.push({ ep: index.toString() });
-      }
-      return { player_id: idAnime, episodesData: [{ episodes: episodeList2, type: "sub", name: "Subtitles" }] };
+      if (!anime_id) return;
+      const response = await request(`${WEBSITE}/anime/${anime_id}`, { headers: PluginHeader });
+      if (!response["success"]) return;
+      const episode_regex = response["text"].match(EPISODE_REGEX);
+      const title_regex = response["text"].match(ANIMETITLE_REGEX);
+      if (!episode_regex) return;
+      const decoded_episodes = decodeHTML(episode_regex[1]) ?? [];
+      let decode_title = {};
+      if (title_regex) decode_title = decodeHTML(title_regex[1]) ?? {};
+      return {
+        player_id: anime_id,
+        episodesData: [{
+          episodes: decoded_episodes.map((content) => ({
+            ep: content["slug"],
+            title: Object.values(content["title_list"])[0],
+            img: content["snapshot"]
+          })),
+          type: "sub"
+        }],
+        langugeAvaible: Object.keys(decode_title).map((v) => LANG_SUPPORT[v])
+      };
     } catch (error) {
-      console.error("Error in extractEpisodeList/Anizone", error);
-      return;
+      console.error("anizone/extractEpisodeList", error);
+      return void 0;
     }
   };
   extractOnlyEpisodesList = async (_type, anime_id) => {
-    let data = await this.extractEpisodeList(void 0, anime_id);
-    if (!data) return [];
-    return data.episodesData[0].episodes;
+    const episodes = await this.extractEpisodeList(void 0, anime_id);
+    if (!episodes) return [];
+    return episodes["episodesData"][0]["episodes"];
   };
-  searchAnime = async (name, _page, _params) => {
-    return await searchAnime(name);
+  searchAnime = async (name, _page = 1, _params) => {
+    const response = await request(`${WEBSITE}/anime?search=${encodeURIComponent(name)}`, { headers: PluginHeader });
+    if (!response["success"]) return [];
+    const regex = response["text"].match(SEARCH_REGEX);
+    if (!regex) return [];
+    try {
+      const decoded = decodeHTML(regex["1"]);
+      if (!decoded) return [];
+      return decoded.map((val) => ({
+        AnimeData: {
+          title: {
+            english: val["title_list"]["1"],
+            romaji: val["title_list"]["5"],
+            native: val["title_list"]["8"]
+          },
+          id: "",
+          player_ID: val["slug"],
+          episodes: val["episode_count"],
+          coverImage: val["cover"],
+          seasonYear: val["start_year"],
+          type: types[val["types"]]
+        }
+      }));
+    } catch (error) {
+      console.error("anizone/searchAnime FAILED PARSE REGEX CONTENT", error);
+      return [];
+    }
+  };
+  raportStatus = async () => {
+    let results = [];
+    async function wrapper(func) {
+      try {
+        const start = performance.now();
+        const response = await func();
+        const end = performance.now();
+        return {
+          time: end - start,
+          work: response.length > 0
+        };
+      } catch (error) {
+        return void 0;
+      }
+    }
+    const functions = [
+      async () => this.searchAnime("Oshi No Ko", 1),
+      async () => this.extractPlayerData("sub", { ep: "1" }, "feb8ql49"),
+      async () => this.extractOnlyEpisodesList("sub", "feb8ql49")
+    ];
+    for (let index = 0; index < functions.length; index++) {
+      const element = functions[index];
+      const tmp = await wrapper(element);
+      if (!tmp) {
+        results.push({
+          time: 0,
+          work: false
+        });
+      } else {
+        results.push(tmp);
+      }
+    }
+    return {
+      search: results[0],
+      player: results[1],
+      episodes: results[2]
+    };
   };
 }
 export {
-  Anizone as default
+  template as default
 };

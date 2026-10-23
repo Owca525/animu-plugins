@@ -1,4 +1,4 @@
-import { makeSmallText, request } from "./index.js";
+import { request, SheepFinderAnime2000 } from "./index.js";
 const WEB = "https://www.lycoris.cafe";
 const HEADER = {
   "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:149.0) Gecko/20100101 Firefox/149.0",
@@ -18,47 +18,6 @@ function timeToSeconds(time) {
   const [hours, minutes, seconds] = parts;
   return hours * 3600 + minutes * 60 + seconds;
 }
-function SheepFinderAnime2000(animeList, anime) {
-  try {
-    if (anime.id != "") {
-      console.log("ID Check");
-      const findedID = animeList.find((item) => item.id == anime.id);
-      if (findedID) return findedID.player_ID;
-    }
-    console.log("First Check", animeList);
-    if (animeList.length <= 0) return void 0;
-    if (animeList.length == 1) return animeList[0].player_ID;
-    let seasonYearFilter = animeList.filter((element) => element.seasonYear == anime.seasonYear);
-    console.log("Second Check", seasonYearFilter);
-    if (seasonYearFilter.length <= 0) return void 0;
-    if (seasonYearFilter.length == 1) return seasonYearFilter[0].player_ID;
-    let seasonFilter = seasonYearFilter.filter((element) => makeSmallText(element.season) == makeSmallText(anime.season));
-    console.log("Third Check", seasonYearFilter);
-    if (seasonFilter.length <= 0) return void 0;
-    if (seasonFilter.length == 1) return seasonFilter[0].player_ID;
-    let episodesFilter = void 0;
-    if (anime.episodes) {
-      episodesFilter = seasonFilter.filter((element) => element.episodes == anime.episodes);
-      console.log("Four Check", episodesFilter);
-      if (episodesFilter.length <= 0) return void 0;
-      if (episodesFilter.length == 1) return episodesFilter[0].player_ID;
-    }
-    let durationFilter = [];
-    if (episodesFilter) durationFilter = episodesFilter.filter((element) => element.duration == anime.duration);
-    else durationFilter = seasonFilter.filter((element) => element.duration == anime.duration);
-    console.log("Five Check", durationFilter);
-    if (durationFilter.length <= 0) return void 0;
-    if (durationFilter.length == 1) return durationFilter[0].player_ID;
-    let formatFilter = durationFilter.filter((element) => makeSmallText(element.format) == makeSmallText(anime.format));
-    console.log("Six Check", formatFilter);
-    if (formatFilter.length <= 0) return void 0;
-    if (formatFilter.length == 1) return formatFilter[0].player_ID;
-    return formatFilter[0].player_ID;
-  } catch (error) {
-    console.error("LycorisCafe SheepFinderAnime2000 error", error);
-    return animeList[0].player_ID;
-  }
-}
 function detectResoltion(text) {
   switch (text) {
     case "SD":
@@ -69,6 +28,17 @@ function detectResoltion(text) {
       return "1080";
   }
   return "Unknown";
+}
+function DetectURL(str) {
+  const splited = str.split(" ");
+  for (let index = 0; index < splited.length; index++) {
+    try {
+      const url = new URL(splited[index]);
+      if (url.protocol === "http:" || url.protocol === "https:") return splited[index];
+    } catch (error) {
+    }
+  }
+  return "";
 }
 function convertToAnimeData(data) {
   try {
@@ -132,7 +102,7 @@ async function otherExtractor(id) {
 }
 class LycorisCafe {
   metadata = {
-    version: "1.7",
+    version: "1.8",
     name: "Lycoris.cafe",
     author: "Owca525",
     icon: `${WEB}/favicon.ico`,
@@ -162,7 +132,7 @@ class LycorisCafe {
         if (res == "Unknown") continue;
         currentEpisode.push({
           res,
-          url: animeEpisodes[key],
+          url: DetectURL(animeEpisodes[key]),
           defaultSubtitles: res == "Source"
         });
       }
@@ -241,6 +211,44 @@ class LycorisCafe {
     });
     if (!data) return [];
     return data;
+  };
+  raportStatus = async () => {
+    let results = [];
+    async function wrapper(func) {
+      try {
+        const start = performance.now();
+        const response = await func();
+        const end = performance.now();
+        return {
+          time: end - start,
+          work: response.length > 0
+        };
+      } catch (error) {
+        return void 0;
+      }
+    }
+    const functions = [
+      async () => this.searchAnime("Tokidoki Bosotto Russiago de Dereru Tonari no Alya-san", 1),
+      async () => this.extractPlayerData("sub", { ep: "4" }, "189046"),
+      async () => this.extractOnlyEpisodesList("sub", "189046")
+    ];
+    for (let index = 0; index < functions.length; index++) {
+      const element = functions[index];
+      const tmp = await wrapper(element);
+      if (!tmp) {
+        results.push({
+          time: 0,
+          work: false
+        });
+      } else {
+        results.push(tmp);
+      }
+    }
+    return {
+      search: results[0],
+      player: results[1],
+      episodes: results[2]
+    };
   };
 }
 export {
